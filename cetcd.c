@@ -47,6 +47,8 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array addresses) {
     curl_easy_setopt(cli->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
+    curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "cetcd");
+    curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L); /*post after redirecting*/
 }
 cetcd_client *cetcd_client_create(cetcd_array addresses){
     cetcd_client *cli;
