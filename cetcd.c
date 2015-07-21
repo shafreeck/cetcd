@@ -23,8 +23,7 @@ typedef struct cetcd_response_parser_t {
     yajl_parser_context ctx;
     yajl_handle json;
 }cetcd_response_parser;
-/*
-static const char *etcd_event_action[] = {
+static const char *cetcd_event_action[] = {
     "set",
     "get",
     "update",
@@ -32,7 +31,6 @@ static const char *etcd_event_action[] = {
     "delete",
     "expire"
 };
-*/
 
 void cetcd_client_init(cetcd_client *cli, cetcd_array addresses) {
     curl_global_init(CURL_GLOBAL_ALL);
@@ -299,13 +297,24 @@ void cetcd_error_free(cetcd_error *err) {
         free(err);
     }
 }
-static cetcd_node_print(cetcd_response_node *node) {
+static void cetcd_node_print(cetcd_response_node *node) {
+    int i, count;
+    cetcd_response_node *n;
     if (node) {
         printf("Node TTL: %lu\n", node->ttl);
         printf("Node ModifiedIndex: %lu\n", node->modified_index);
         printf("Node CreatedIndex: %lu\n", node->created_index);
         printf("Node Key: %s\n", node->key);
         printf("Node Value: %s\n", node->value);
+        printf("Node Dir: %d\n", node->dir);
+        printf("\n");
+        if (node->nodes) {
+            count = cetcd_array_size(node->nodes);
+            for (i = 0; i < count; ++i) {
+                n = cetcd_array_get(node->nodes, i);
+                cetcd_node_print(n);
+            }
+        }
     }
 }
 void cetcd_response_print(cetcd_response *resp) {
@@ -315,13 +324,16 @@ void cetcd_response_print(cetcd_response *resp) {
         printf("Error Cause:%s\n", resp->err->cause);
         return;
     }
+    printf("Etcd Action:%s\n", cetcd_event_action[resp->action]);
     printf("Etcd Index:%lu\n", resp->etcd_index);
     printf("Raft Index:%lu\n", resp->raft_index);
     printf("Raft Term:%lu\n", resp->raft_term);
     if (resp->node) {
+        printf("-------------Node------------\n");
         cetcd_node_print(resp->node);
     }
     if (resp->prev_node) {
+        printf("-----------prevNode------------\n");
         cetcd_node_print(resp->prev_node);
     }
 }
