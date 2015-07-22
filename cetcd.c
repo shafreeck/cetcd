@@ -149,7 +149,6 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     curl_easy_setopt(watcher->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
     curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
 
-    curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
     curl_easy_setopt(watcher->curl, CURLOPT_CUSTOMREQUEST, "GET");
     curl_easy_setopt(watcher->curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
     curl_easy_setopt(watcher->curl, CURLOPT_WRITEDATA, watcher->parser);
@@ -488,7 +487,6 @@ void cetcd_response_free(cetcd_response *resp) {
             cetcd_error_free(resp->err);
             resp->err = NULL;
         }
-        /*TODO free nodes*/
         if (resp->node) {
             cetcd_node_free(resp->node);
         }
