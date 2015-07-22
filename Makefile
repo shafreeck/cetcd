@@ -1,9 +1,12 @@
 CFLAGS=-g -Wall -O0 -fPIC
 LDFLAGS=-lcurl -lyajl -lpthread
+prefix=/usr/local
 
 all: cetcdctrl libcetcd.so
 clean:
 	rm -f cetcdctrl libcetcd.so *.o sds/*.o
+install:
+	install -S -d  libcetcd.so $(prefix)/lib
 
 libcetcd.so: cetcd_array.o sds/sds.o cetcd.o
 	gcc $(LDFLAGS) -shared -o libcetcd.so cetcd_array.o sds/sds.o cetcd.o
