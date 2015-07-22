@@ -8,6 +8,7 @@
 #include <curl/curl.h>
 #include <yajl/yajl_parse.h>
 #include <sys/select.h>
+#include <pthread.h>
 static const char *http_method[] = {
     "GET", 
     "POST",
@@ -271,6 +272,10 @@ int cetcd_multi_watch(cetcd_client *cli) {
     }
     curl_multi_cleanup(mcurl);
     return count;
+}
+int cetcd_multi_watch_async(cetcd_client *cli) {
+    pthread_t thread;
+    return pthread_create(&thread, NULL, (void *(*)(void *))cetcd_multi_watch, cli);
 }
 
 cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);

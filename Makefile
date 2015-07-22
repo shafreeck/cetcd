@@ -1,5 +1,5 @@
 CFLAGS=-g -Wall -O0
-LDFLAGS=-lcurl -lyajl
+LDFLAGS=-lcurl -lyajl -lpthread
 
 all:cetcd_array.o sds/sds.o cetcd.o cetcdctrl
 clean:
