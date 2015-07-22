@@ -214,6 +214,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
             if (watcher->callback) {
                 watcher->callback(watcher->userdata, resp);
                 cetcd_response_free(resp);
+                watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_free*/
             }
             if (!watcher->once) {
                 sdsclear(watcher->parser->buf);
