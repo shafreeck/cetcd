@@ -674,7 +674,6 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             val = kvs[1];
             if (strncmp(key, "X-Etcd-Index", sizeof("X-Etcd-Index")-1) == 0) {
                 resp->etcd_index = atoi(val);
-                printf("X-Etcd-Index: %lu\n", resp->etcd_index);
             } else if (strncmp(key, "X-Raft-Index", sizeof("X-Raft-Index")-1) == 0) {
                 resp->raft_index = atoi(val);
             } else if (strncmp(key, "X-Raft-Term", sizeof("X-Raft-Term")-1) == 0) {
