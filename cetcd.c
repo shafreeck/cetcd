@@ -192,19 +192,25 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
             curl_multi_remove_handle(mcurl, curl);
             curl_easy_getinfo(curl, CURLINFO_PRIVATE, &watcher);
 
+            resp = watcher->parser->resp;
             if (msg->data.result != CURLE_OK) {
                 /*try next in round-robin ways*/
                 /*FIXME There is a race condition if multiple watchers failed*/
-                cli->picked = (cli->picked+1)%(cetcd_array_size(&cli->addresses));
-                url = cetcd_watcher_build_url(cli, watcher);
-                curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
-                sdsfree(url);
-                curl_multi_add_handle(mcurl, curl);
-                ++added;
-                watcher->attempts --;
-                continue;
+                if (watcher->attempts) {
+                    cli->picked = (cli->picked+1)%(cetcd_array_size(&cli->addresses));
+                    url = cetcd_watcher_build_url(cli, watcher);
+                    curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
+                    sdsfree(url);
+                    curl_multi_add_handle(mcurl, curl);
+                    ++added;
+                    watcher->attempts --;
+                    continue;
+                } else {
+                    resp->err = calloc(1, sizeof(cetcd_error));
+                    resp->err->ecode = error_cluster_failed;
+                    resp->err->message = sdsnew("cetcd_reap_watchers: all cluster servers failed.");
+                }
             }
-            resp = watcher->parser->resp;
             if (watcher->callback) {
                 watcher->callback(watcher->userdata, resp);
                 cetcd_response_free(resp);
