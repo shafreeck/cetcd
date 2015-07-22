@@ -36,15 +36,16 @@ typedef struct cetcd_error_t {
     uint64_t index;
 }cetcd_error;
 typedef struct cetcd_client_t {
-    CURL *curl;
+    CURL  *curl;
     cetcd_error *err;
-    cetcd_array watches;  /*curl watch handlers*/
+    cetcd_array watchers; /*curl watch handlers*/
     cetcd_array addresses;/*cluster addresses*/
     const char *keys_space;
     const char *stat_space;
     const char *member_space;
     int picked;
     struct {
+        int      verbose;
         uint64_t ttl;
         uint64_t connect_timeout;
         uint64_t read_timeout;
@@ -54,11 +55,6 @@ typedef struct cetcd_client_t {
     } settings;
 
 } cetcd_client;
-
-typedef struct cetcd_key_value_pair_t {
-    cetcd_string key;
-    cetcd_string value;
-} cetcd_key_value_pair;
 
 typedef struct cetcd_request_t {
     int method;
@@ -89,6 +85,22 @@ typedef struct cetcd_reponse_t {
     uint64_t raft_term;
 } cetcd_response;
 
+struct cetcd_response_parser_t ;
+
+typedef int (*watcher_callback) (void *userdata, cetcd_response *resp);
+typedef struct cetcd_watcher_t {
+    watcher_callback callback;
+    struct cetcd_response_parser_t *parser;
+    int attempts;
+
+    CURL         *curl;
+    int          once;
+    int          recursive;
+    uint64_t     index;
+    cetcd_string key;
+    void         *userdata;
+} cetcd_watcher;
+
 cetcd_client* cetcd_clietn_create(cetcd_array addresses);
 void          cetcd_client_init(cetcd_client *cli, cetcd_array addresses);
 void          cetcd_client_destroy(cetcd_client *cli);
@@ -113,6 +125,11 @@ cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, cetcd_string key,
         uint64_t prev, uint64_t ttl);
 cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, cetcd_string key, cetcd_string prev);
 cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, cetcd_string key, uint64_t prev);
+
+cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
+        int recursive, int once, watcher_callback callback, void *userdata);
+int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher);
+int cetcd_multi_watch(cetcd_client *cli);
 
 
 void cetcd_response_print(cetcd_response *resp);

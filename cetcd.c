@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <yajl/yajl_parse.h>
+#include <sys/select.h>
 static const char *http_method[] = {
     "GET", 
     "POST",
@@ -34,21 +35,28 @@ static const char *cetcd_event_action[] = {
 
 void cetcd_client_init(cetcd_client *cli, cetcd_array addresses) {
     curl_global_init(CURL_GLOBAL_ALL);
-    cli->keys_space = "v2/keys";
-    cli->stat_space = "v2/stat";
+    srand(time(0));
+
+    cli->keys_space =   "v2/keys";
+    cli->stat_space =   "v2/stat";
     cli->member_space = "v2/members";
     cli->curl = curl_easy_init();
     cli->addresses = addresses;
-    srand(time(0));
     cli->picked = rand() % (cetcd_array_size(&cli->addresses));
+
+    cli->settings.verbose = 0;
     cli->settings.connect_timeout = 1;
     cli->settings.read_timeout = 1;  /*not used now*/
     cli->settings.write_timeout = 1; /*not used now*/
+
+    cetcd_array_init(&cli->watchers, 10);
+
     curl_easy_setopt(cli->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
     curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "cetcd");
-    curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L); /*post after redirecting*/
+    curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
+    curl_easy_setopt(cli->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
 }
 cetcd_client *cetcd_client_create(cetcd_array addresses){
     cetcd_client *cli;
@@ -60,12 +68,175 @@ cetcd_client *cetcd_client_create(cetcd_array addresses){
 void cetcd_client_destroy(cetcd_client *cli) {
     curl_easy_cleanup(cli->curl);
     curl_global_cleanup();
+    cetcd_array_destory(&cli->watchers);
 }
 void cetcd_client_free(cetcd_client *cli){
     if (cli) {
         cetcd_client_destroy(cli);
         free(cli);
     }
+}
+
+size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
+
+cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
+        int recursive, int once, watcher_callback callback, void *userdata) {
+    cetcd_watcher *watcher;
+
+    watcher = calloc(1, sizeof(cetcd_watcher));
+    watcher->key = sdsnew(key);
+    watcher->index = index;
+    watcher->recursive = recursive;
+    watcher->once = once;
+    watcher->callback = callback;
+    watcher->userdata = userdata;
+    watcher->curl = curl_easy_init();
+
+    watcher->parser = calloc(1, sizeof(cetcd_response_parser));
+    watcher->parser->st = 0;
+    watcher->parser->buf = sdsempty();
+    watcher->parser->resp = calloc(1, sizeof(cetcd_response));
+
+    return watcher;
+}
+void cetcd_watcher_free(cetcd_watcher *watcher) {
+    if (watcher) {
+        if (watcher->key) {
+            sdsfree(watcher->key);
+        }
+        if (watcher->curl) {
+            curl_easy_cleanup(watcher->curl);
+        }
+        if (watcher->parser) {
+            sdsfree(watcher->parser->buf);
+            cetcd_response_free(watcher->parser->resp);
+            free(watcher->parser);
+        }
+        free(watcher);
+    }
+}
+static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *watcher) {
+    cetcd_string url;
+    url = sdscatprintf(sdsempty(), "http://%s/%s%s?wait=true", (cetcd_string)cetcd_array_get(&cli->addresses, cli->picked),
+            cli->keys_space, watcher->key);
+    if (watcher->index) {
+        url = sdscatprintf(url, "&waitIndex=%lu", watcher->index);
+    }
+    if (watcher->recursive) {
+        url = sdscatprintf(url, "&recursive=true");
+    }
+    return url;
+}
+int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
+    cetcd_array *watchers;
+    watchers = &cli->watchers;
+    cetcd_string url;
+
+    url = cetcd_watcher_build_url(cli, watcher);
+    curl_easy_setopt(watcher->curl,CURLOPT_URL, url);
+    sdsfree(url);
+
+    watcher->attempts = cetcd_array_size(&cli->addresses);
+
+    curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
+    curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L);
+    curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
+    curl_easy_setopt(watcher->curl, CURLOPT_USERAGENT, "cetcd");
+    curl_easy_setopt(watcher->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
+    curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
+
+    curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
+    curl_easy_setopt(watcher->curl, CURLOPT_CUSTOMREQUEST, "GET");
+    curl_easy_setopt(watcher->curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
+    curl_easy_setopt(watcher->curl, CURLOPT_WRITEDATA, watcher->parser);
+    curl_easy_setopt(watcher->curl, CURLOPT_HEADER, 1L);
+    curl_easy_setopt(watcher->curl, CURLOPT_FOLLOWLOCATION, 1L);
+    cetcd_array_append(watchers, watcher);
+    return 1;
+}
+static void cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
+    int     count;
+    CURLMsg *msg;
+    CURL    *curl;
+    cetcd_string url;
+    cetcd_watcher *watcher;
+    cetcd_response *resp;
+    while ((msg = curl_multi_info_read(mcurl, &count)) != NULL) {
+        if (msg->msg == CURLMSG_DONE) {
+            curl = msg->easy_handle;
+            curl_multi_remove_handle(mcurl, curl);
+            curl_easy_getinfo(curl, CURLINFO_PRIVATE, &watcher);
+
+            if (msg->data.result != CURLE_OK) {
+                /*try next in round-robin ways*/
+                /*FIXME There is a race condition if multiple watchers failed*/
+                cli->picked = (cli->picked+1)%(cetcd_array_size(&cli->addresses));
+                url = cetcd_watcher_build_url(cli, watcher);
+                curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
+                sdsfree(url);
+                curl_multi_add_handle(mcurl, curl);
+                watcher->attempts --;
+                continue;
+            }
+            resp = watcher->parser->resp;
+            if (watcher->callback) {
+                watcher->callback(watcher->userdata, resp);
+            }
+            if (!watcher->once) {
+                if (watcher->index) {
+                    watcher->index ++;
+                    url = cetcd_watcher_build_url(cli, watcher);
+                    curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
+                    sdsfree(url);
+                }
+                curl_multi_add_handle(mcurl, curl);
+                continue;
+            }
+            cetcd_watcher_free(watcher);
+        }
+    }
+}
+int cetcd_multi_watch(cetcd_client *cli) {
+    int           i, count;
+    int           maxfd, left;
+    long          timeout;
+    fd_set        r, w, e;
+    cetcd_array   *watchers;
+    cetcd_watcher *watcher;
+    CURLM         *mcurl;
+
+    struct timeval tv;
+
+    mcurl = curl_multi_init();
+    watchers = &cli->watchers;
+    count = cetcd_array_size(watchers);
+    for (i = 0; i < count; ++i) {
+        watcher = cetcd_array_get(watchers, i);
+        curl_easy_setopt(watcher->curl, CURLOPT_PRIVATE, watcher);
+        curl_multi_add_handle(mcurl, watcher->curl);
+    }
+    for (;;) {
+        curl_multi_perform(mcurl, &left);
+        if (left == 0) {
+            break;
+        }
+        FD_ZERO(&r);
+        FD_ZERO(&w);
+        FD_ZERO(&e);
+        curl_multi_fdset(mcurl, &r, &w, &e, &maxfd);
+        curl_multi_timeout(mcurl, &timeout);
+        if (timeout == -1) {
+            timeout = 100; /*wait for 0.1 seconds*/
+        }
+        tv.tv_sec = timeout/1000;
+        tv.tv_usec = (timeout%1000)*1000;
+
+        /*TODO handle errors*/
+        select(maxfd+1, &r, &w, &e, &tv);
+        cetcd_reap_watchers(cli, mcurl);
+    }
+    curl_multi_cleanup(mcurl);
+    return count;
 }
 
 cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
@@ -584,7 +755,7 @@ cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
         resp = cetcd_send_request(cli->curl, req);
         sdsfree(url);
 
-        if(resp && resp->err && resp->err->ecode >= error_send_request_failed) {
+        if(resp && resp->err && resp->err->ecode == error_send_request_failed) {
             if (i == count-1) {
                 break;
             }
