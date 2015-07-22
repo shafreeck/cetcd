@@ -97,6 +97,8 @@ cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
     watcher->parser->buf = sdsempty();
     watcher->parser->resp = calloc(1, sizeof(cetcd_response));
 
+    watcher->array_index = -1;
+
     return watcher;
 }
 void cetcd_watcher_free(cetcd_watcher *watcher) {
@@ -129,6 +131,7 @@ static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *wa
 }
 int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     cetcd_array *watchers;
+    cetcd_watcher *w;
     watchers = &cli->watchers;
     cetcd_string url;
 
@@ -151,7 +154,28 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     curl_easy_setopt(watcher->curl, CURLOPT_WRITEDATA, watcher->parser);
     curl_easy_setopt(watcher->curl, CURLOPT_HEADER, 1L);
     curl_easy_setopt(watcher->curl, CURLOPT_FOLLOWLOCATION, 1L);
-    cetcd_array_append(watchers, watcher);
+    /* We use an array to store watchers. It will cause holes when remove some watchers.
+     * watcher->array_index is used to reset to the original hole if the watcher was deleted before.
+     * */
+    if (watcher->array_index == -1) {
+        cetcd_array_append(watchers, watcher);
+        watcher->array_index = cetcd_array_size(watchers) - 1;
+    } else {
+        w = cetcd_array_get(watchers, watcher->array_index);
+        if (w) {
+            cetcd_watcher_free(w);
+        }
+        cetcd_array_set(watchers, watcher->array_index, watcher);
+    }
+    return 1;
+}
+int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
+    size_t index;
+    index = watcher->array_index;
+    if (watcher && index > 0) {
+        cetcd_array_set(&cli->watchers, index, NULL);
+        cetcd_watcher_free(watcher);
+    }
     return 1;
 }
 static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {

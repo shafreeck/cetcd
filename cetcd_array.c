@@ -27,6 +27,14 @@ int cetcd_array_init(cetcd_array *ca, size_t cap) {
     return 0;
 }
 
+int cetcd_array_set(cetcd_array *ca, size_t index, void *p) {
+    if (index > ca->count) {
+        return -1;
+    }
+    ca->elem[index] = p;
+    return 0;
+}
+
 int cetcd_array_append(cetcd_array *ca, void *p) {
     size_t left;
 

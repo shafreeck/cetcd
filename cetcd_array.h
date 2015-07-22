@@ -18,6 +18,7 @@ int cetcd_array_destory(cetcd_array *ca);
 int cetcd_array_append(cetcd_array *ca, void *p);
 
 void *cetcd_array_get(cetcd_array *ca, size_t index);
+int   cetcd_array_set(cetcd_array *ca, size_t index, void *p);
 void *cetcd_array_top(cetcd_array *ca);
 void *cetcd_array_pop(cetcd_array *ca);
 
