@@ -1,5 +1,6 @@
 #ifndef CETCD_ARRAY_H
 #define CETCD_ARRAY_H
+#include <stdlib.h>
 
 typedef struct cetcd_array_t {
     void **elem;
@@ -21,5 +22,7 @@ void *cetcd_array_get(cetcd_array *ca, size_t index);
 int   cetcd_array_set(cetcd_array *ca, size_t index, void *p);
 void *cetcd_array_top(cetcd_array *ca);
 void *cetcd_array_pop(cetcd_array *ca);
+
+cetcd_array *cetcd_array_shuffle(cetcd_array *cards);
 
 #endif

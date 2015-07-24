@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 
 #include "cetcd_array.h"
 
@@ -89,4 +90,24 @@ size_t cetcd_array_size(cetcd_array *ca) {
 size_t cetcd_array_cap(cetcd_array *ca) {
     return ca->cap;
 }
+cetcd_array *cetcd_array_shuffle(cetcd_array *cards) {
+    int i, j, count;
+    void *src, *dst;
 
+    srand(time(0));
+    count = cetcd_array_size(cards);
+    if (count <= 1) {
+        return cards;
+    }
+    for (i = count-1; i > 0; --i) {
+        j = rand() % (i+1);
+        if (i != j) {
+            src = cetcd_array_get(cards, i);
+            dst = cetcd_array_get(cards, j);
+            cetcd_array_set(cards, i, dst);
+            cetcd_array_set(cards, j, src);
+        }
+    }
+
+    return cards;
+}

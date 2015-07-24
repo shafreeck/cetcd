@@ -42,7 +42,7 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     cli->stat_space =   "v2/stat";
     cli->member_space = "v2/members";
     cli->curl = curl_easy_init();
-    cli->addresses = addresses;
+    cli->addresses = shuffle(addresses);
     cli->picked = rand() % (cetcd_array_size(cli->addresses));
 
     cli->settings.verbose = 0;
