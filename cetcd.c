@@ -34,7 +34,7 @@ static const char *cetcd_event_action[] = {
     "expire"
 };
 
-void cetcd_client_init(cetcd_client *cli, cetcd_array addresses) {
+void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     curl_global_init(CURL_GLOBAL_ALL);
     srand(time(0));
 
@@ -43,7 +43,7 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array addresses) {
     cli->member_space = "v2/members";
     cli->curl = curl_easy_init();
     cli->addresses = addresses;
-    cli->picked = rand() % (cetcd_array_size(&cli->addresses));
+    cli->picked = rand() % (cetcd_array_size(cli->addresses));
 
     cli->settings.verbose = 0;
     cli->settings.connect_timeout = 1;
@@ -59,7 +59,7 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array addresses) {
     curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
     curl_easy_setopt(cli->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
 }
-cetcd_client *cetcd_client_create(cetcd_array addresses){
+cetcd_client *cetcd_client_create(cetcd_array *addresses){
     cetcd_client *cli;
 
     cli = calloc(1, sizeof(cetcd_client));
@@ -120,7 +120,7 @@ void cetcd_watcher_free(cetcd_watcher *watcher) {
 }
 static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *watcher) {
     cetcd_string url;
-    url = sdscatprintf(sdsempty(), "http://%s/%s%s?wait=true", (cetcd_string)cetcd_array_get(&cli->addresses, cli->picked),
+    url = sdscatprintf(sdsempty(), "http://%s/%s%s?wait=true", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked),
             cli->keys_space, watcher->key);
     if (watcher->index) {
         url = sdscatprintf(url, "&waitIndex=%lu", watcher->index);
@@ -140,7 +140,7 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     curl_easy_setopt(watcher->curl,CURLOPT_URL, url);
     sdsfree(url);
 
-    watcher->attempts = cetcd_array_size(&cli->addresses);
+    watcher->attempts = cetcd_array_size(cli->addresses);
 
     curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -197,7 +197,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                 /*try next in round-robin ways*/
                 /*FIXME There is a race condition if multiple watchers failed*/
                 if (watcher->attempts) {
-                    cli->picked = (cli->picked+1)%(cetcd_array_size(&cli->addresses));
+                    cli->picked = (cli->picked+1)%(cetcd_array_size(cli->addresses));
                     url = cetcd_watcher_build_url(cli, watcher);
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
@@ -790,10 +790,10 @@ cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
 
     err = NULL;
     resp = NULL;
-    count = cetcd_array_size(&cli->addresses);
+    count = cetcd_array_size(cli->addresses);
     
     for(i = 0; i < count; ++i) {
-        url = sdscatprintf(sdsempty(), "http://%s/%s", (cetcd_string)cetcd_array_get(&cli->addresses, cli->picked), req->uri);
+        url = sdscatprintf(sdsempty(), "http://%s/%s", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked), req->uri);
         req->url = url;
         resp = cetcd_send_request(cli->curl, req);
         sdsfree(url);

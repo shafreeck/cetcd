@@ -39,7 +39,7 @@ typedef struct cetcd_client_t {
     CURL  *curl;
     cetcd_error *err;
     cetcd_array watchers; /*curl watch handlers*/
-    cetcd_array addresses;/*cluster addresses*/
+    cetcd_array *addresses;/*cluster addresses*/
     const char *keys_space;
     const char *stat_space;
     const char *member_space;
@@ -102,8 +102,8 @@ typedef struct cetcd_watcher_t {
     void         *userdata;
 } cetcd_watcher;
 
-cetcd_client* cetcd_client_create(cetcd_array addresses);
-void          cetcd_client_init(cetcd_client *cli, cetcd_array addresses);
+cetcd_client* cetcd_client_create(cetcd_array *addresses);
+void          cetcd_client_init(cetcd_client *cli, cetcd_array *addresses);
 void          cetcd_client_destroy(cetcd_client *cli);
 void          cetcd_client_free(cetcd_client *cli);
 
