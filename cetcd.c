@@ -52,12 +52,10 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 
     cetcd_array_init(&cli->watchers, 10);
 
-    curl_easy_setopt(cli->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
     curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
-    curl_easy_setopt(cli->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
 }
 cetcd_client *cetcd_client_create(cetcd_array *addresses){
     cetcd_client *cli;
@@ -763,6 +761,8 @@ cetcd_response *cetcd_send_request(CURL *curl, cetcd_request *req) {
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &parser);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose); 
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, req->cli->settings.connect_timeout);
 
     res = curl_easy_perform(curl);
 
@@ -795,6 +795,7 @@ cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
     for(i = 0; i < count; ++i) {
         url = sdscatprintf(sdsempty(), "http://%s/%s", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked), req->uri);
         req->url = url;
+        req->cli = cli;
         resp = cetcd_send_request(cli->curl, req);
         sdsfree(url);
 

@@ -61,6 +61,7 @@ typedef struct cetcd_request_t {
     cetcd_string uri;
     cetcd_string url;
     cetcd_string data;
+    cetcd_client *cli;
 } cetcd_request;
 
 typedef struct cetcd_response_node_t {
