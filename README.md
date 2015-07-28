@@ -8,7 +8,7 @@
  cetcd use [sds](https://github.com/antirez/sds) as a dynamic string utility.  It is licensed in sds/LICENSE.
  sds is interaged in cetcd's source code, so you don't have to install it before.
 
- [yajl](https://github.com/lloyd/yajl) is a powerfull json stream parsing libaray. We use the stream apis to 
+ [yajl](https://github.com/lloyd/yajl) is a powerful json stream parsing libaray. We use the stream apis to 
  parse response from cetcd
 
 ## Install
