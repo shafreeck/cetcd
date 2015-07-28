@@ -23,7 +23,7 @@
 
  Use 
  ```
- make intall prefix=/path
+ make install prefix=/path
  ```
  to specify your custom path.
 
