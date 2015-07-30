@@ -187,7 +187,6 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
     while ((msg = curl_multi_info_read(mcurl, &ignore)) != NULL) {
         if (msg->msg == CURLMSG_DONE) {
             curl = msg->easy_handle;
-            curl_multi_remove_handle(mcurl, curl);
             curl_easy_getinfo(curl, CURLINFO_PRIVATE, &watcher);
 
             resp = watcher->parser->resp;
@@ -199,6 +198,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     url = cetcd_watcher_build_url(cli, watcher);
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
+                    curl_multi_remove_handle(mcurl, curl);
                     curl_multi_add_handle(mcurl, curl);
                     ++added;
                     watcher->attempts --;
@@ -224,10 +224,12 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
                 }
+                curl_multi_remove_handle(mcurl, curl);
                 curl_multi_add_handle(mcurl, curl);
                 ++added;
                 continue;
             }
+            curl_multi_remove_handle(mcurl, curl);
             cetcd_watcher_release(watcher);
         }
     }
