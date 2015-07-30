@@ -783,6 +783,14 @@ cetcd_response *cetcd_send_request(CURL *curl, cetcd_request *req) {
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, http_method[req->method]);
     if (req->method == HTTP_PUT) {
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, req->data);
+    } else {
+        /* We must clear post fields here:
+         * We reuse the curl handle for all HTTP methods.
+         * CURLOPT_POSTFIELDS would be set when issue a PUT request.
+         * The field  pointed to the freed req->data. It would be 
+         * reused by next request.
+         * */
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
     }
     curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
