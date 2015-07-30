@@ -69,7 +69,7 @@ void cetcd_client_destroy(cetcd_client *cli) {
     curl_global_cleanup();
     cetcd_array_destory(&cli->watchers);
 }
-void cetcd_client_free(cetcd_client *cli){
+void cetcd_client_release(cetcd_client *cli){
     if (cli) {
         cetcd_client_destroy(cli);
         free(cli);
@@ -100,7 +100,7 @@ cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
 
     return watcher;
 }
-void cetcd_watcher_free(cetcd_watcher *watcher) {
+void cetcd_watcher_release(cetcd_watcher *watcher) {
     if (watcher) {
         if (watcher->key) {
             sdsfree(watcher->key);
@@ -110,7 +110,7 @@ void cetcd_watcher_free(cetcd_watcher *watcher) {
         }
         if (watcher->parser) {
             sdsfree(watcher->parser->buf);
-            cetcd_response_free(watcher->parser->resp);
+            cetcd_response_release(watcher->parser->resp);
             free(watcher->parser);
         }
         free(watcher);
@@ -161,7 +161,7 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     } else {
         w = cetcd_array_get(watchers, watcher->array_index);
         if (w) {
-            cetcd_watcher_free(w);
+            cetcd_watcher_release(w);
         }
         cetcd_array_set(watchers, watcher->array_index, watcher);
     }
@@ -172,7 +172,7 @@ int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     index = watcher->array_index;
     if (watcher && index > 0) {
         cetcd_array_set(&cli->watchers, index, NULL);
-        cetcd_watcher_free(watcher);
+        cetcd_watcher_release(watcher);
     }
     return 1;
 }
@@ -211,8 +211,8 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
             }
             if (watcher->callback) {
                 watcher->callback(watcher->userdata, resp);
-                cetcd_response_free(resp);
-                watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_free*/
+                cetcd_response_release(resp);
+                watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_release*/
             }
             if (!watcher->once) {
                 sdsclear(watcher->parser->buf);
@@ -228,7 +228,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                 ++added;
                 continue;
             }
-            cetcd_watcher_free(watcher);
+            cetcd_watcher_release(watcher);
         }
     }
     return added;
@@ -467,16 +467,16 @@ cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, cetcd_string ke
     sdsfree(req.uri);
     return resp;
 }
-void cetcd_node_free(cetcd_response_node *node) {
+void cetcd_node_release(cetcd_response_node *node) {
     int i, count;
     cetcd_response_node *n;
     if (node->nodes) {
         count = cetcd_array_size(node->nodes);
         for (i = 0; i < count; ++i) {
             n = cetcd_array_get(node->nodes, i);
-            cetcd_node_free(n);
+            cetcd_node_release(n);
         }
-        cetcd_array_free(node->nodes);
+        cetcd_array_release(node->nodes);
     }
     if (node->key) {
         sdsfree(node->key);
@@ -486,22 +486,22 @@ void cetcd_node_free(cetcd_response_node *node) {
     }
     free(node);
 }
-void cetcd_response_free(cetcd_response *resp) {
+void cetcd_response_release(cetcd_response *resp) {
     if(resp) {
         if (resp->err) {
-            cetcd_error_free(resp->err);
+            cetcd_error_release(resp->err);
             resp->err = NULL;
         }
         if (resp->node) {
-            cetcd_node_free(resp->node);
+            cetcd_node_release(resp->node);
         }
         if (resp->prev_node) {
-            cetcd_node_free(resp->prev_node);
+            cetcd_node_release(resp->prev_node);
         }
         free(resp);
     }
 }
-void cetcd_error_free(cetcd_error *err) {
+void cetcd_error_release(cetcd_error *err) {
     if (err) {
         if (err->message) {
             sdsfree(err->message);
@@ -805,7 +805,7 @@ cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
             }
             /*try next*/
             cli->picked = (cli->picked + 1) % count;
-            cetcd_response_free(resp);
+            cetcd_response_release(resp);
             resp = NULL;
         } else {
             /*got response, return*/
@@ -822,7 +822,7 @@ cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
         resp->err->message = sdsnew("etcd_do_request: all cluster servers failed.");
         if (err) {
            resp->err->message = sdscatprintf(resp->err->message, " last error: %s", err->message);
-           cetcd_error_free(err);
+           cetcd_error_release(err);
         }
         resp->err->cause = sdsdup(req->uri);
     }

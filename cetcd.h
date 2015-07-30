@@ -106,7 +106,7 @@ typedef struct cetcd_watcher_t {
 cetcd_client* cetcd_client_create(cetcd_array *addresses);
 void          cetcd_client_init(cetcd_client *cli, cetcd_array *addresses);
 void          cetcd_client_destroy(cetcd_client *cli);
-void          cetcd_client_free(cetcd_client *cli);
+void          cetcd_client_release(cetcd_client *cli);
 
 cetcd_response *cetcd_get(cetcd_client *cli, cetcd_string key);
 cetcd_response *cetcd_get_recursive(cetcd_client *cli, cetcd_string key, int sort);
@@ -137,6 +137,6 @@ int cetcd_multi_watch_async(cetcd_client *cli);
 
 
 void cetcd_response_print(cetcd_response *resp);
-void cetcd_response_free(cetcd_response *resp);
-void cetcd_error_free(cetcd_error *err);
+void cetcd_response_release(cetcd_response *resp);
+void cetcd_error_release(cetcd_error *err);
 #endif

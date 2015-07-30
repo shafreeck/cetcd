@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
         printf("error :%d, %s (%s)\n", resp->err->ecode, resp->err->message, resp->err->cause);
     }
     cetcd_response_print(resp);
-    cetcd_response_free(resp);
+    cetcd_response_release(resp);
 
     cetcd_array_destory(&addrs);
     cetcd_client_destroy(&cli);

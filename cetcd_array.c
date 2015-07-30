@@ -10,7 +10,7 @@ cetcd_array *cetcd_array_create(size_t cap) {
     cetcd_array_init(ca, cap);
     return ca;
 }
-void cetcd_array_free(cetcd_array *ca) {
+void cetcd_array_release(cetcd_array *ca) {
     if (ca) {
         cetcd_array_destory(ca);
         free(ca);
