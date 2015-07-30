@@ -200,8 +200,9 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     sdsfree(url);
                     curl_multi_remove_handle(mcurl, curl);
                     curl_multi_add_handle(mcurl, curl);
-                    ++added;
-                    watcher->attempts --;
+                    /*++added;
+                     *watcher->attempts --;
+                     */
                     continue;
                 } else {
                     resp->err = calloc(1, sizeof(cetcd_error));
@@ -211,6 +212,11 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
             }
             if (watcher->callback) {
                 watcher->callback(watcher->userdata, resp);
+                if (resp->err) {
+                    curl_multi_remove_handle(mcurl, curl);
+                    cetcd_watcher_release(watcher);
+                    break;
+                }
                 cetcd_response_release(resp);
                 watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_release*/
             }
@@ -239,6 +245,7 @@ int cetcd_multi_watch(cetcd_client *cli) {
     int           i, count;
     int           maxfd, left, added;
     long          timeout;
+    long          backoff, backoff_max;
     fd_set        r, w, e;
     cetcd_array   *watchers;
     cetcd_watcher *watcher;
@@ -254,6 +261,8 @@ int cetcd_multi_watch(cetcd_client *cli) {
         curl_easy_setopt(watcher->curl, CURLOPT_PRIVATE, watcher);
         curl_multi_add_handle(mcurl, watcher->curl);
     }
+    backoff = 100; /*100ms*/
+    backoff_max = 1000; /*1 sec*/
     for(;;) {
         curl_multi_perform(mcurl, &left);
         if (left) {
@@ -273,7 +282,23 @@ int cetcd_multi_watch(cetcd_client *cli) {
         }
         added = cetcd_reap_watchers(cli, mcurl);
         if (added == 0 && left == 0) {
-            break;
+        /* It will call curl_multi_perform immediately if:
+         * 1. left is 0
+         * 2. a new attempt should be issued
+         * It is expected to sleep a mount time between attempts.
+         * So we fix this by increasing added counter only
+         * when a new request should be issued.
+         * When added is 0, maybe there are retring requests or nothing.
+         * Either situations should wait before issuing the request.
+         * */
+            if (backoff < backoff_max) {
+                backoff = 2 * backoff;
+            } else {
+                backoff = backoff_max;
+            }
+            tv.tv_sec = backoff/1000;
+            tv.tv_usec = (backoff%1000) * 1000;
+            select(1, 0, 0, 0, &tv);
         }
     }
     curl_multi_cleanup(mcurl);
