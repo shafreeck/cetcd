@@ -418,7 +418,7 @@ cetcd_response *cetcd_watch(cetcd_client *cli, cetcd_string key, uint64_t index)
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = HTTP_GET;
-    req.uri = sdscatprintf(sdsempty(), "%s%s?wait=true&watiIndex=%lu", cli->keys_space, key, index);
+    req.uri = sdscatprintf(sdsempty(), "%s%s?wait=true&waitIndex=%lu", cli->keys_space, key, index);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
     return resp;
@@ -489,7 +489,7 @@ cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, cetcd_string ke
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = HTTP_DELETE;
-    req.uri = sdscatprintf(sdsempty(), "%s%s?prevValue=%lu", cli->keys_space, key, prev);
+    req.uri = sdscatprintf(sdsempty(), "%s%s?prevIndex=%lu", cli->keys_space, key, prev);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
     return resp;
@@ -726,7 +726,7 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             parser->st = json_start_st;
             cetcd_array_init(&parser->ctx.keystack, 10);
             cetcd_array_init(&parser->ctx.nodestack, 10);
-            if (parser->http_status != 200) {
+            if (parser->http_status != 200 && parser->http_status != 201) {
                 resp->err = calloc(1, sizeof(cetcd_error));
                 parser->ctx.userdata = resp->err;
                 parser->json = yajl_alloc(&error_callbacks, 0, &parser->ctx);
