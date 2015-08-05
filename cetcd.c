@@ -677,7 +677,6 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             if (ptr[i] == ' ') {
                 continue;
             }
-            parser->buf = sdscatlen(parser->buf, ptr+i, 1);
             parser->st = header_val_st;
         }
         if (parser->st == header_val_st) {
