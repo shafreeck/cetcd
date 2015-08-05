@@ -114,6 +114,7 @@ cetcd_response *cetcd_get_recursive(cetcd_client *cli, cetcd_string key, int sor
 cetcd_response *cetcd_set(cetcd_client *cli, cetcd_string key,
         cetcd_string value, uint64_t ttl);
 cetcd_response *cetcd_mkdir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
+cetcd_response *cetcd_setdir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
 cetcd_response *cetcd_refresh(cetcd_client *cli, cetcd_string key, uint64_t ttl);
 
 cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key);
