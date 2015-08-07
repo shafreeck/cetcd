@@ -330,7 +330,7 @@ cetcd_response *cetcd_get_recursive(cetcd_client *cli, cetcd_string key, int sor
     req.method = HTTP_GET;
     req.uri = sdscatprintf(sdsempty(), "%s%s?recursive=true", cli->keys_space, key);
     if (sort) {
-        req.uri = sdscatprintf(req.uri, "&sort=true");
+        req.uri = sdscatprintf(req.uri, "&sorted=true");
     }
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
