@@ -52,8 +52,10 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 
     cetcd_array_init(&cli->watchers, 10);
 
+#if LIBCURL_VERSION_NUM >= 0x071900
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
+#endif
     curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
 }
