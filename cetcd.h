@@ -109,15 +109,22 @@ void          cetcd_client_destroy(cetcd_client *cli);
 void          cetcd_client_release(cetcd_client *cli);
 
 cetcd_response *cetcd_get(cetcd_client *cli, cetcd_string key);
-cetcd_response *cetcd_get_recursive(cetcd_client *cli, cetcd_string key, int sort);
+cetcd_response *cetcd_lsdir(cetcd_client *cli, cetcd_string key, int sort, int recursive);
 
 cetcd_response *cetcd_set(cetcd_client *cli, cetcd_string key,
         cetcd_string value, uint64_t ttl);
 cetcd_response *cetcd_mkdir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
 cetcd_response *cetcd_setdir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
-cetcd_response *cetcd_refresh(cetcd_client *cli, cetcd_string key, uint64_t ttl);
+cetcd_response *cetcd_refresh_dir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
+cetcd_response *cetcd_refresh(cetcd_client *cli, cetcd_string key, 
+        cetcd_string value, uint64_t ttl);
+cetcd_response *cetcd_create(cetcd_client *cli, cetcd_string key, 
+        cetcd_string value, uint64_t ttl);
+cetcd_response *cetcd_create_in_order(cetcd_client *cli, cetcd_string key, 
+        cetcd_string value, uint64_t ttl);
 
-cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key);
+cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key, int recursive);
+cetcd_response *cetcd_delete_dir(cetcd_client *cli, cetcd_string key);
 
 cetcd_response *cetcd_watch(cetcd_client *cli, cetcd_string key, uint64_t index);
 cetcd_response *cetcd_watch_recursive(cetcd_client *cli, cetcd_string key, uint64_t index);
