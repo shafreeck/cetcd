@@ -400,7 +400,7 @@ cetcd_response *cetcd_setdir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
     return resp;
 }
 
-cetcd_response *cetcd_refresh_dir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
+cetcd_response *cetcd_updatedir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -419,7 +419,7 @@ cetcd_response *cetcd_refresh_dir(cetcd_client *cli, cetcd_string key, uint64_t 
     return resp;
 }
 
-cetcd_response *cetcd_refresh(cetcd_client *cli, cetcd_string key, 
+cetcd_response *cetcd_update(cetcd_client *cli, cetcd_string key, 
         cetcd_string value, uint64_t ttl) {
     cetcd_request req;
     cetcd_response *resp;
@@ -494,7 +494,7 @@ cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key, int recursive)
     return resp;
 }
 
-cetcd_response *cetcd_delete_dir(cetcd_client *cli, cetcd_string key){
+cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key){
     cetcd_request req;
     cetcd_response *resp;
 
