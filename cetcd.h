@@ -7,12 +7,12 @@
 typedef sds cetcd_string;
 
 enum HTTP_METHOD {
-    HTTP_GET,
-    HTTP_POST,
-    HTTP_PUT,
-    HTTP_DELETE,
-    HTTP_HEAD,
-    HTTP_OPTION
+    ETCD_HTTP_GET,
+    ETCD_HTTP_POST,
+    ETCD_HTTP_PUT,
+    ETCD_HTTP_DELETE,
+    ETCD_HTTP_HEAD,
+    ETCD_HTTP_OPTION
 };
 enum ETCD_EVENT_ACTION {
     ETCD_SET,
