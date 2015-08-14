@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
     cetcd_client_init(&cli, &addrs);
 
-    resp = cetcd_get_recursive(&cli, "/radar/service", 1);
+    resp = cetcd_lsdir(&cli, "/radar/service", 1, 1);
     if(resp->err) {
         printf("error :%d, %s (%s)\n", resp->err->ecode, resp->err->message, resp->err->cause);
     }
