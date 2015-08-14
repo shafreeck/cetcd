@@ -330,12 +330,7 @@ cetcd_response *cetcd_lsdir(cetcd_client *cli, cetcd_string key, int sort, int r
         req.uri = sdscatprintf(req.uri, "?sorted=true");
     }
     if (recursive){
-        if (sort) {
-            req.uri = sdscatprintf(req.uri, "&");
-        } else {
-            req.uri = sdscatprintf(req.uri, "?");
-        }
-        req.uri = sdscatprintf(req.uri, "recursive=true");
+        req.uri = sdscatprintf(req.uri, "%crecursive=true", sort?'&':'?');
     }
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
