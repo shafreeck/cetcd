@@ -143,8 +143,10 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     watcher->attempts = cetcd_array_size(cli->addresses);
 
     curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
+#if LIBCURL_VERSION_NUM >= 0x071900
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
+#endif
     curl_easy_setopt(watcher->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(watcher->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
     curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
