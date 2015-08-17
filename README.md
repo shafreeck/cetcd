@@ -29,3 +29,42 @@
 
 ## Link
  Use `-lcetcd` to link the library
+
+## Usage
+cetcd_array is an expandable dynamic array. It is used to pass etcd cluster addresses, and return cetcd response nodes
+
+### Create an array to store the etcd addresses
+```
+    cetcd_array addrs;
+
+    cetcd_array_init(&addrs, 3);
+    cetcd_array_append(&addrs, "127.0.0.1:2379");
+    cetcd_array_append(&addrs, "127.0.0.1:2378");
+    cetcd_array_append(&addrs, "127.0.0.1:2377");
+```
+
+cetcd_client is a context cetcd uses to issue requests, you should init it with etcd addresses
+### init the cetcd_client
+```
+    cetcd_client cli;
+    cetcd_client_init(&cli, &addrs);
+```
+
+Then you can issue an cetcd request which reply with an cetcd response
+### List a directory
+```
+    cetcd_response *resp;
+    resp = cetcd_lsdir(&cli, "/radar/service", 1, 1);
+    if(resp->err) {
+        printf("error :%d, %s (%s)\n", resp->err->ecode, resp->err->message, resp->err->cause);
+    }
+    cetcd_response_print(resp);
+    cetcd_response_release(resp);
+```
+
+### Clean all resources
+```
+    cetcd_array_destory(&addrs);
+    cetcd_client_destroy(&cli);
+```
+See examples/cetcdget.c for more detailes
