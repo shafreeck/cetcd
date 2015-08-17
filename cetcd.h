@@ -123,8 +123,8 @@ cetcd_response *cetcd_create(cetcd_client *cli, cetcd_string key,
 cetcd_response *cetcd_create_in_order(cetcd_client *cli, cetcd_string key, 
         cetcd_string value, uint64_t ttl);
 
-cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key, int recursive);
-cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key);
+cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key);
+cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key, int recursive);
 
 cetcd_response *cetcd_watch(cetcd_client *cli, cetcd_string key, uint64_t index);
 cetcd_response *cetcd_watch_recursive(cetcd_client *cli, cetcd_string key, uint64_t index);

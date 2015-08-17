@@ -474,28 +474,28 @@ cetcd_response *cetcd_create_in_order(cetcd_client *cli, cetcd_string key,
     return resp;
 }
 
-cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key, int recursive) {
+cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key) {
     cetcd_request req;
     cetcd_response *resp;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_DELETE;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    if (recursive){
-        req.uri = sdscatprintf(req.uri, "?recursive=true");
-    }
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
     return resp;
 }
 
-cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key){
+cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key, int recursive){
     cetcd_request req;
     cetcd_response *resp;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_DELETE;
     req.uri = sdscatprintf(sdsempty(), "%s%s?dir=true", cli->keys_space, key);
+    if (recursive){
+        req.uri = sdscatprintf(req.uri, "&recursive=true");
+    }
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
     return resp;
