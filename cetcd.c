@@ -52,6 +52,12 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 
     cetcd_array_init(&cli->watchers, 10);
 
+    /* Set CURLOPT_NOSIGNAL to 1 to work around the libcurl bug:
+     *  http://stackoverflow.com/questions/9191668/error-longjmp-causes-uninitialized-stack-frame
+     *  http://curl.haxx.se/mail/lib-2008-09/0197.html
+     * */
+    curl_easy_setopt(cli->curl, CURLOPT_NOSIGNAL, 1);
+
 #if LIBCURL_VERSION_NUM >= 0x071900
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
@@ -141,6 +147,10 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     sdsfree(url);
 
     watcher->attempts = cetcd_array_size(cli->addresses);
+
+    /* See above about CURLOPT_NOSIGNAL
+     * */
+    curl_easy_setopt(watcher->curl, CURLOPT_NOSIGNAL, 1);
 
     curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
 #if LIBCURL_VERSION_NUM >= 0x071900
