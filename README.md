@@ -44,7 +44,7 @@ cetcd_array is an expandable dynamic array. It is used to pass etcd cluster addr
 ```
 
 cetcd_client is a context cetcd uses to issue requests, you should init it with etcd addresses
-### init the cetcd_client
+### Init the cetcd_client
 ```
     cetcd_client cli;
     cetcd_client_init(&cli, &addrs);
@@ -67,4 +67,4 @@ Then you can issue an cetcd request which reply with an cetcd response
     cetcd_array_destory(&addrs);
     cetcd_client_destroy(&cli);
 ```
-See examples/cetcdget.c for more detailes
+See [examples/cetcdget.c](https://github.com/shafreeck/cetcd/blob/master/examples/cetcdget.c) for more detailes
