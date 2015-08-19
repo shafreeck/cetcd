@@ -180,6 +180,25 @@ int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     }
     return 1;
 }
+int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
+    size_t index;
+    /* Clear the callback function pointer to ensure to stop notify the user
+     * Set once to 1 indicates that the watcher would stop after next trigger.
+     *
+     * The watcher object would be freed by cetcd_reap_watchers
+     * Watchers may hang forever if it would be never triggered after set once to 1
+     * FIXME: Cancel the blocking watcher
+     * */
+    watcher->callback = NULL;
+    watcher->once = 1;
+    /* Remove it from the cli->watchers array
+     * */
+    index = watcher->array_index;
+    if (watcher && index > 0) {
+        cetcd_array_set(&cli->watchers, index, NULL);
+    }
+    return 1;
+}
 static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
     int     added, ignore;
     CURLMsg *msg;

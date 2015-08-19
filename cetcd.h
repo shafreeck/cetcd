@@ -142,6 +142,7 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 int cetcd_multi_watch(cetcd_client *cli);
 int cetcd_multi_watch_async(cetcd_client *cli);
+int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 
 
 void cetcd_response_print(cetcd_response *resp);
