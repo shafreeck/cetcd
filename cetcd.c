@@ -225,6 +225,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
             curl_easy_getinfo(curl, CURLINFO_PRIVATE, &watcher);
 
             resp = watcher->parser->resp;
+            index = watcher->index;
             if (msg->data.result != CURLE_OK) {
                 /*try next in round-robin ways*/
                 /*FIXME There is a race condition if multiple watchers failed*/
@@ -247,12 +248,16 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
             }
             if (watcher->callback) {
                 watcher->callback(watcher->userdata, resp);
-                if (resp->err) {
+                if (resp->err && resp->err->ecode != 401/* not outdated*/) {
                     curl_multi_remove_handle(mcurl, curl);
                     cetcd_watcher_release(watcher);
                     break;
                 }
-                index = resp->node->modified_index;
+                if (resp->node) {
+                    index = resp->node->modified_index;
+                } else {
+                    ++ index;
+                }
                 cetcd_response_release(resp);
                 watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_release*/
             }
