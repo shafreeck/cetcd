@@ -5,7 +5,7 @@ prefix=/usr/local
 all: libcetcd.so
 clean:
 	rm -f libcetcd.so *.o sds/*.o
-install:
+install:all
 	install -D libcetcd.so $(prefix)/lib/libcetcd.so
 	install -D cetcd.h $(prefix)/include/cetcd.h
 	install -D cetcd_array.h $(prefix)/include/cetcd_array.h
