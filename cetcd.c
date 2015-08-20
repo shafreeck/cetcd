@@ -210,6 +210,7 @@ int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     return 1;
 }
 static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
+    uint64_t index;
     int     added, ignore;
     CURLMsg *msg;
     CURL    *curl;
@@ -217,6 +218,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
     cetcd_watcher *watcher;
     cetcd_response *resp;
     added = 0;
+    index = 0;
     while ((msg = curl_multi_info_read(mcurl, &ignore)) != NULL) {
         if (msg->msg == CURLMSG_DONE) {
             curl = msg->easy_handle;
@@ -250,6 +252,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     cetcd_watcher_release(watcher);
                     break;
                 }
+                index = resp->node->modified_index;
                 cetcd_response_release(resp);
                 watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_release*/
             }
@@ -258,7 +261,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                 watcher->parser->st = 0;
                 watcher->parser->resp = calloc(1, sizeof(cetcd_response));
                 if (watcher->index) {
-                    watcher->index ++;
+                    watcher->index = index + 1;
                     url = cetcd_watcher_build_url(cli, watcher);
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
