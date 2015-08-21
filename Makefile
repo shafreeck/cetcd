@@ -1,6 +1,11 @@
-CFLAGS=-g -Wall -O0 -fPIC
+CFLAGS= -Wall -O3 -fPIC
 LDFLAGS=-lcurl -lyajl -lpthread
 prefix=/usr/local
+
+release:all
+
+debug:CFLAGS= -g -O0 -Wall -Werror -fPIC
+debug:all
 
 all: libcetcd.so
 clean:
