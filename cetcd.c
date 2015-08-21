@@ -56,7 +56,7 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
      *  http://stackoverflow.com/questions/9191668/error-longjmp-causes-uninitialized-stack-frame
      *  http://curl.haxx.se/mail/lib-2008-09/0197.html
      * */
-    curl_easy_setopt(cli->curl, CURLOPT_NOSIGNAL, 1);
+    curl_easy_setopt(cli->curl, CURLOPT_NOSIGNAL, 1L);
 
 #if LIBCURL_VERSION_NUM >= 0x071900
     curl_easy_setopt(cli->curl, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -150,7 +150,7 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
 
     /* See above about CURLOPT_NOSIGNAL
      * */
-    curl_easy_setopt(watcher->curl, CURLOPT_NOSIGNAL, 1);
+    curl_easy_setopt(watcher->curl, CURLOPT_NOSIGNAL, 1L);
 
     curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
 #if LIBCURL_VERSION_NUM >= 0x071900
