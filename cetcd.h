@@ -88,9 +88,9 @@ typedef struct cetcd_reponse_t {
 
 struct cetcd_response_parser_t ;
 
-typedef int (*watcher_callback) (void *userdata, cetcd_response *resp);
+typedef int (*cetcd_watcher_callback) (void *userdata, cetcd_response *resp);
 typedef struct cetcd_watcher_t {
-    watcher_callback callback;
+    cetcd_watcher_callback callback;
     struct cetcd_response_parser_t *parser;
     int attempts;
     int array_index; /*the index in array cli->wachers*/
@@ -137,7 +137,7 @@ cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, cetcd_string key, cetcd_
 cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, cetcd_string key, uint64_t prev);
 
 cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
-        int recursive, int once, watcher_callback callback, void *userdata);
+        int recursive, int once, cetcd_watcher_callback callback, void *userdata);
 int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 int cetcd_multi_watch(cetcd_client *cli);

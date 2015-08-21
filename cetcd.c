@@ -87,7 +87,7 @@ void cetcd_client_release(cetcd_client *cli){
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
 
 cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
-        int recursive, int once, watcher_callback callback, void *userdata) {
+        int recursive, int once, cetcd_watcher_callback callback, void *userdata) {
     cetcd_watcher *watcher;
 
     watcher = calloc(1, sizeof(cetcd_watcher));
