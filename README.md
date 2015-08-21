@@ -12,9 +12,9 @@
  parse response from cetcd
 
 ## Install
- cetcd parses json stream basing on [yajl](https://github.com/lloyd/yajl), so you should install yajl first.
+ cetcd parses json stream basing on [yajl](https://github.com/lloyd/yajl). It will be auto downloaded and installed.
 
- then 
+ so
  ```
  make 
  make install
