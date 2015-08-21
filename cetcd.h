@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "sds/sds.h"
 #include "cetcd_array.h"
-typedef sds cetcd_string;
+typedef sds cetcd_string; /* If you do not familiar with sds, you can just use it as "char *" */
 
 enum HTTP_METHOD {
     ETCD_HTTP_GET,
