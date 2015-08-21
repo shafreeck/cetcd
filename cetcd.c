@@ -9,6 +9,16 @@
 #include <yajl/yajl_parse.h>
 #include <sys/select.h>
 #include <pthread.h>
+
+typedef sds cetcd_string;
+
+typedef struct cetcd_request_t {
+    int method;
+    cetcd_string uri;
+    cetcd_string url;
+    cetcd_string data;
+    cetcd_client *cli;
+} cetcd_request;
 static const char *http_method[] = {
     "GET", 
     "POST",
@@ -86,7 +96,7 @@ void cetcd_client_release(cetcd_client *cli){
 
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
 
-cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
+cetcd_watcher *cetcd_watcher_create(const char *key, uint64_t index,
         int recursive, int once, cetcd_watcher_callback callback, void *userdata) {
     cetcd_watcher *watcher;
 
@@ -352,11 +362,11 @@ int cetcd_multi_watch_async(cetcd_client *cli) {
 
 cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
 
-cetcd_response *cetcd_get(cetcd_client *cli, cetcd_string key) {
+cetcd_response *cetcd_get(cetcd_client *cli, const char *key) {
     return cetcd_lsdir(cli, key, 0, 0);
 }
 
-cetcd_response *cetcd_lsdir(cetcd_client *cli, cetcd_string key, int sort, int recursive) {
+cetcd_response *cetcd_lsdir(cetcd_client *cli, const char *key, int sort, int recursive) {
     cetcd_request req;
     cetcd_response *resp;
 
@@ -374,8 +384,8 @@ cetcd_response *cetcd_lsdir(cetcd_client *cli, cetcd_string key, int sort, int r
     return resp;
 }
 
-cetcd_response *cetcd_set(cetcd_client *cli, cetcd_string key,
-        cetcd_string value, uint64_t ttl) {
+cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
+        const char *value, uint64_t ttl) {
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -394,7 +404,7 @@ cetcd_response *cetcd_set(cetcd_client *cli, cetcd_string key,
     return resp;
 }
 
-cetcd_response *cetcd_mkdir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
+cetcd_response *cetcd_mkdir(cetcd_client *cli, const char *key, uint64_t ttl){
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -413,7 +423,7 @@ cetcd_response *cetcd_mkdir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
     return resp;
 }
 
-cetcd_response *cetcd_setdir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
+cetcd_response *cetcd_setdir(cetcd_client *cli, const char *key, uint64_t ttl){
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -432,7 +442,7 @@ cetcd_response *cetcd_setdir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
     return resp;
 }
 
-cetcd_response *cetcd_updatedir(cetcd_client *cli, cetcd_string key, uint64_t ttl){
+cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl){
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -451,8 +461,8 @@ cetcd_response *cetcd_updatedir(cetcd_client *cli, cetcd_string key, uint64_t tt
     return resp;
 }
 
-cetcd_response *cetcd_update(cetcd_client *cli, cetcd_string key, 
-        cetcd_string value, uint64_t ttl) {
+cetcd_response *cetcd_update(cetcd_client *cli, const char *key, 
+        const char *value, uint64_t ttl) {
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -471,8 +481,8 @@ cetcd_response *cetcd_update(cetcd_client *cli, cetcd_string key,
     return resp;
 }
 
-cetcd_response *cetcd_create(cetcd_client *cli, cetcd_string key,
-        cetcd_string value, uint64_t ttl){
+cetcd_response *cetcd_create(cetcd_client *cli, const char *key,
+        const char *value, uint64_t ttl){
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -491,8 +501,8 @@ cetcd_response *cetcd_create(cetcd_client *cli, cetcd_string key,
     return resp;
 }
 
-cetcd_response *cetcd_create_in_order(cetcd_client *cli, cetcd_string key,
-        cetcd_string value, uint64_t ttl){
+cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key,
+        const char *value, uint64_t ttl){
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -511,7 +521,7 @@ cetcd_response *cetcd_create_in_order(cetcd_client *cli, cetcd_string key,
     return resp;
 }
 
-cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key) {
+cetcd_response *cetcd_delete(cetcd_client *cli, const char *key) {
     cetcd_request req;
     cetcd_response *resp;
 
@@ -523,7 +533,7 @@ cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key) {
     return resp;
 }
 
-cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key, int recursive){
+cetcd_response *cetcd_rmdir(cetcd_client *cli, const char *key, int recursive){
     cetcd_request req;
     cetcd_response *resp;
 
@@ -538,7 +548,7 @@ cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key, int recursive){
     return resp;
 }
 
-cetcd_response *cetcd_watch(cetcd_client *cli, cetcd_string key, uint64_t index) {
+cetcd_response *cetcd_watch(cetcd_client *cli, const char *key, uint64_t index) {
     cetcd_request req;
     cetcd_response *resp;
 
@@ -550,7 +560,7 @@ cetcd_response *cetcd_watch(cetcd_client *cli, cetcd_string key, uint64_t index)
     return resp;
 }
 
-cetcd_response *cetcd_watch_recursive(cetcd_client *cli, cetcd_string key, uint64_t index) {
+cetcd_response *cetcd_watch_recursive(cetcd_client *cli, const char *key, uint64_t index) {
     cetcd_request req;
     cetcd_response *resp;
 
@@ -562,7 +572,7 @@ cetcd_response *cetcd_watch_recursive(cetcd_client *cli, cetcd_string key, uint6
     return resp;
 }
 
-cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, cetcd_string key, cetcd_string value, cetcd_string prev, uint64_t ttl) {
+cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, const char *key, const char *value, const char *prev, uint64_t ttl) {
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -580,7 +590,7 @@ cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, cetcd_string key, cetcd_st
     sdsfree(params);
     return resp;
 }
-cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, cetcd_string key, cetcd_string value, uint64_t prev, uint64_t ttl) {
+cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, const char *key, const char *value, uint64_t prev, uint64_t ttl) {
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
@@ -598,7 +608,7 @@ cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, cetcd_string key,
     sdsfree(params);
     return resp;
 }
-cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, cetcd_string key, cetcd_string prev) {
+cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, const char *key, const char *prev) {
     cetcd_request req;
     cetcd_response *resp;
 
@@ -609,7 +619,7 @@ cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, cetcd_string key, cetcd_
     sdsfree(req.uri);
     return resp;
 }
-cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, cetcd_string key, uint64_t prev) {
+cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, const char *key, uint64_t prev) {
     cetcd_request req;
     cetcd_response *resp;
 

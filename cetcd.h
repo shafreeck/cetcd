@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "sds/sds.h"
 #include "cetcd_array.h"
-typedef sds cetcd_string; /* If you do not familiar with sds, you can just use it as "char *" */
+typedef sds cetcd_string;
 
 enum HTTP_METHOD {
     ETCD_HTTP_GET,
@@ -31,8 +31,8 @@ enum ETCD_EVENT_ACTION {
 #define error_cluster_failed         1002
 typedef struct cetcd_error_t {
     int ecode;
-    cetcd_string message;
-    cetcd_string cause;
+    char *message;
+    char *cause;
     uint64_t index;
 }cetcd_error;
 typedef struct cetcd_client_t {
@@ -50,24 +50,16 @@ typedef struct cetcd_client_t {
         uint64_t connect_timeout;
         uint64_t read_timeout;
         uint64_t write_timeout;
-        cetcd_string user;
-        cetcd_string password;
+        char *user;
+        char *password;
     } settings;
 
 } cetcd_client;
 
-typedef struct cetcd_request_t {
-    int method;
-    cetcd_string uri;
-    cetcd_string url;
-    cetcd_string data;
-    cetcd_client *cli;
-} cetcd_request;
-
 typedef struct cetcd_response_node_t {
     cetcd_array *nodes; //struct etcd_response_node_t 
-    cetcd_string key;
-    cetcd_string value;
+    char *key;
+    char *value;
     int dir; /* 1 for true, and 0 for false */
     uint64_t expiration;
     int64_t  ttl;
@@ -99,7 +91,7 @@ typedef struct cetcd_watcher_t {
     int          once;
     int          recursive;
     uint64_t     index;
-    cetcd_string key;
+    char * key;
     void         *userdata;
 } cetcd_watcher;
 
@@ -108,35 +100,35 @@ void          cetcd_client_init(cetcd_client *cli, cetcd_array *addresses);
 void          cetcd_client_destroy(cetcd_client *cli);
 void          cetcd_client_release(cetcd_client *cli);
 
-cetcd_response *cetcd_get(cetcd_client *cli, cetcd_string key);
-cetcd_response *cetcd_lsdir(cetcd_client *cli, cetcd_string key, int sort, int recursive);
+cetcd_response *cetcd_get(cetcd_client *cli, const char *key);
+cetcd_response *cetcd_lsdir(cetcd_client *cli, const char *key, int sort, int recursive);
 
-cetcd_response *cetcd_set(cetcd_client *cli, cetcd_string key,
-        cetcd_string value, uint64_t ttl);
-cetcd_response *cetcd_mkdir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
-cetcd_response *cetcd_setdir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
-cetcd_response *cetcd_updatedir(cetcd_client *cli, cetcd_string key, uint64_t ttl);
-cetcd_response *cetcd_update(cetcd_client *cli, cetcd_string key, 
-        cetcd_string value, uint64_t ttl);
-cetcd_response *cetcd_create(cetcd_client *cli, cetcd_string key, 
-        cetcd_string value, uint64_t ttl);
-cetcd_response *cetcd_create_in_order(cetcd_client *cli, cetcd_string key, 
-        cetcd_string value, uint64_t ttl);
+cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
+        const char *value, uint64_t ttl);
+cetcd_response *cetcd_mkdir(cetcd_client *cli, const char *key, uint64_t ttl);
+cetcd_response *cetcd_setdir(cetcd_client *cli, const char *key, uint64_t ttl);
+cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl);
+cetcd_response *cetcd_update(cetcd_client *cli, const char *key, 
+        const char *value, uint64_t ttl);
+cetcd_response *cetcd_create(cetcd_client *cli, const char *key, 
+        const char *value, uint64_t ttl);
+cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key, 
+        const char *value, uint64_t ttl);
 
-cetcd_response *cetcd_delete(cetcd_client *cli, cetcd_string key);
-cetcd_response *cetcd_rmdir(cetcd_client *cli, cetcd_string key, int recursive);
+cetcd_response *cetcd_delete(cetcd_client *cli, const char *key);
+cetcd_response *cetcd_rmdir(cetcd_client *cli, const char *key, int recursive);
 
-cetcd_response *cetcd_watch(cetcd_client *cli, cetcd_string key, uint64_t index);
-cetcd_response *cetcd_watch_recursive(cetcd_client *cli, cetcd_string key, uint64_t index);
+cetcd_response *cetcd_watch(cetcd_client *cli, const char *key, uint64_t index);
+cetcd_response *cetcd_watch_recursive(cetcd_client *cli, const char *key, uint64_t index);
 
-cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, cetcd_string key, cetcd_string value,
-        cetcd_string prev, uint64_t ttl);
-cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, cetcd_string key, cetcd_string value,
+cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, const char *key, const char *value,
+        const char *prev, uint64_t ttl);
+cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, const char *key, const char *value,
         uint64_t prev, uint64_t ttl);
-cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, cetcd_string key, cetcd_string prev);
-cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, cetcd_string key, uint64_t prev);
+cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, const char *key, const char *prev);
+cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, const char *key, uint64_t prev);
 
-cetcd_watcher *cetcd_watcher_create(cetcd_string key, uint64_t index,
+cetcd_watcher *cetcd_watcher_create(const char *key, uint64_t index,
         int recursive, int once, cetcd_watcher_callback callback, void *userdata);
 int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher);
