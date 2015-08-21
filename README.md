@@ -65,11 +65,30 @@ Then you can issue an cetcd request which reply with an cetcd response
 ### List a directory
 ```
     cetcd_response *resp;
-    resp = cetcd_lsdir(&cli, "/radar/service", 1, 1);
+    resp = cetcd_lsdir(&cli, "/service", 1, 1);
     if(resp->err) {
         printf("error :%d, %s (%s)\n", resp->err->ecode, resp->err->message, resp->err->cause);
     }
     cetcd_response_print(resp);
+    cetcd_response_release(resp);
+```
+### Set a key
+```
+    cetcd_response *resp;
+    resp = cetcd_set(&cli, "/service/redis", "hello cetcd", 0);
+    if(resp->err) {
+        printf("error :%d, %s (%s)\n", resp->err->ecode, resp->err->message, resp->err->cause);
+    }
+    cetcd_response_release(resp);
+```
+
+### Get a key
+```
+    cetcd_response *resp;
+    resp = cetcd_get(&cli, "/service/redis");
+    if(resp->err) {
+        printf("error :%d, %s (%s)\n", resp->err->ecode, resp->err->message, resp->err->cause);
+    }
     cetcd_response_release(resp);
 ```
 
