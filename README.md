@@ -9,12 +9,23 @@
  sds is interaged in cetcd's source code, so you don't have to install it before.
 
  [yajl](https://github.com/lloyd/yajl) is a powerful json stream parsing libaray. We use the stream apis to 
- parse response from cetcd
+ parse response from cetcd. It is already integrated as a third-party dependency, so you are not necessary to
+ install it before.
+
+ [curl](http://curl.haxx.se/download.html) is required to issue HTTP requests in cetcd
 
 ## Install
- cetcd parses json stream basing on [yajl](https://github.com/lloyd/yajl). It will be auto downloaded and installed.
 
- so
+Install curl if needed
+on Ubuntu
+```
+apt-get install libcurl4-openssl-dev
+```
+or on CentOS
+```
+yum install libcurl-devel
+```
+then
  ```
  make 
  make install
