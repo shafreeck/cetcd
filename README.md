@@ -1,6 +1,7 @@
 # Cetcd is a C client for etcd
 
 [![wercker status](https://app.wercker.com/status/cc417f5b6e093b4d0b962580a3d022cb/s/master "wercker status")](https://app.wercker.com/project/bykey/cc417f5b6e093b4d0b962580a3d022cb)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shafreeck/cetcd?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ## Status
  cetcd is on active development. It aims to be used in production environment and to supply full features of etcd.
