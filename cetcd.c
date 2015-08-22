@@ -10,8 +10,6 @@
 #include <sys/select.h>
 #include <pthread.h>
 
-typedef sds cetcd_string;
-
 typedef struct cetcd_request_t {
     int method;
     cetcd_string uri;
