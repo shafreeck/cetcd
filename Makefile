@@ -29,7 +29,7 @@ cetcd.o:cetcd.c cetcd.h cetcd_json_parser.h third-party/build/include/yajl/*.h t
 third-party:third-party/yajl-2.1.0
 
 third-party/yajl-2.1.0.tar.gz:
-	mkdir third-party
+	mkdir -p third-party
 	curl -L https://github.com/lloyd/yajl/archive/2.1.0.tar.gz -o third-party/yajl-2.1.0.tar.gz
 third-party/yajl-2.1.0:third-party/yajl-2.1.0.tar.gz
 	tar -zxf third-party/yajl-2.1.0.tar.gz -C third-party
