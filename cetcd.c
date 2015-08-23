@@ -94,11 +94,12 @@ void cetcd_client_release(cetcd_client *cli){
 
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
 
-cetcd_watcher *cetcd_watcher_create(const char *key, uint64_t index,
+cetcd_watcher *cetcd_watcher_create(cetcd_client *cli, const char *key, uint64_t index,
         int recursive, int once, cetcd_watcher_callback callback, void *userdata) {
     cetcd_watcher *watcher;
 
     watcher = calloc(1, sizeof(cetcd_watcher));
+    watcher->cli = cli;
     watcher->key = sdsnew(key);
     watcher->index = index;
     watcher->recursive = recursive;
@@ -144,30 +145,28 @@ static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *wa
     }
     return url;
 }
-int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
-    cetcd_array *watchers;
+int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
     cetcd_watcher *w;
-    watchers = &cli->watchers;
     cetcd_string url;
 
-    url = cetcd_watcher_build_url(cli, watcher);
+    url = cetcd_watcher_build_url(watcher->cli, watcher);
     curl_easy_setopt(watcher->curl,CURLOPT_URL, url);
     sdsfree(url);
 
-    watcher->attempts = cetcd_array_size(cli->addresses);
+    watcher->attempts = cetcd_array_size(watcher->cli->addresses);
 
     /* See above about CURLOPT_NOSIGNAL
      * */
     curl_easy_setopt(watcher->curl, CURLOPT_NOSIGNAL, 1L);
 
-    curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, cli->settings.connect_timeout);
+    curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, watcher->cli->settings.connect_timeout);
 #if LIBCURL_VERSION_NUM >= 0x071900
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
 #endif
     curl_easy_setopt(watcher->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(watcher->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
-    curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, cli->settings.verbose); 
+    curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose); 
 
     curl_easy_setopt(watcher->curl, CURLOPT_CUSTOMREQUEST, "GET");
     curl_easy_setopt(watcher->curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
@@ -189,17 +188,16 @@ int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
     }
     return 1;
 }
-int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
+int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
     size_t index;
     index = watcher->array_index;
     if (watcher && index > 0) {
-        cetcd_array_set(&cli->watchers, index, NULL);
+        cetcd_array_set(watchers, index, NULL);
         cetcd_watcher_release(watcher);
     }
     return 1;
 }
 int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
-    size_t index;
     /* Clear the callback function pointer to ensure to stop notify the user
      * Set once to 1 indicates that the watcher would stop after next trigger.
      *
@@ -209,12 +207,6 @@ int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
      * */
     watcher->callback = NULL;
     watcher->once = 1;
-    /* Remove it from the cli->watchers array
-     * */
-    index = watcher->array_index;
-    if (watcher && index > 0) {
-        cetcd_array_set(&cli->watchers, index, NULL);
-    }
     return 1;
 }
 static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
@@ -290,20 +282,18 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
     }
     return added;
 }
-int cetcd_multi_watch(cetcd_client *cli) {
+int cetcd_multi_watch(cetcd_client *cli, cetcd_array *watchers) {
     int           i, count;
     int           maxfd, left, added;
     long          timeout;
     long          backoff, backoff_max;
     fd_set        r, w, e;
-    cetcd_array   *watchers;
     cetcd_watcher *watcher;
     CURLM         *mcurl;
 
     struct timeval tv;
 
     mcurl = curl_multi_init();
-    watchers = &cli->watchers;
     count = cetcd_array_size(watchers);
     for (i = 0; i < count; ++i) {
         watcher = cetcd_array_get(watchers, i);
@@ -353,9 +343,22 @@ int cetcd_multi_watch(cetcd_client *cli) {
     curl_multi_cleanup(mcurl);
     return count;
 }
-int cetcd_multi_watch_async(cetcd_client *cli) {
+static void *cetcd_multi_watch_wrapper(void *args[]) {
+    cetcd_client *cli;
+    cetcd_array  *watchers;
+    cli = args[0];
+    watchers = args[1];
+    free(args);
+    cetcd_multi_watch(cli, watchers);
+    return 0;
+}
+int cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers) {
     pthread_t thread;
-    return pthread_create(&thread, NULL, (void *(*)(void *))cetcd_multi_watch, cli);
+    void **args;
+    args = calloc(2, sizeof(void *));
+    args[0] = cli;
+    args[1] = watchers;
+    return pthread_create(&thread, NULL, (void *(*)(void *))cetcd_multi_watch_wrapper, args);
 }
 
 cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);

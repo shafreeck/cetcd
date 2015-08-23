@@ -82,7 +82,7 @@ struct cetcd_response_parser_t ;
 
 typedef int (*cetcd_watcher_callback) (void *userdata, cetcd_response *resp);
 typedef struct cetcd_watcher_t {
-    cetcd_watcher_callback callback;
+    cetcd_client *cli;
     struct cetcd_response_parser_t *parser;
     int attempts;
     int array_index; /*the index in array cli->wachers*/
@@ -93,6 +93,7 @@ typedef struct cetcd_watcher_t {
     uint64_t     index;
     char * key;
     void         *userdata;
+    cetcd_watcher_callback callback;
 } cetcd_watcher;
 
 cetcd_client* cetcd_client_create(cetcd_array *addresses);
@@ -128,12 +129,12 @@ cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, const char *key, 
 cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, const char *key, const char *prev);
 cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, const char *key, uint64_t prev);
 
-cetcd_watcher *cetcd_watcher_create(const char *key, uint64_t index,
+cetcd_watcher *cetcd_watcher_create(cetcd_client *cli, const char *key, uint64_t index,
         int recursive, int once, cetcd_watcher_callback callback, void *userdata);
-int cetcd_add_watcher(cetcd_client *cli, cetcd_watcher *watcher);
-int cetcd_del_watcher(cetcd_client *cli, cetcd_watcher *watcher);
-int cetcd_multi_watch(cetcd_client *cli);
-int cetcd_multi_watch_async(cetcd_client *cli);
+int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher);
+int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher);
+int cetcd_multi_watch(cetcd_client *cli, cetcd_array *watchers);
+int cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers);
 int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 
 
