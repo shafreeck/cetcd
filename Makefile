@@ -16,7 +16,6 @@ install:all
 	install -D libcetcd.so $(prefix)/lib/libcetcd.so
 	install -D cetcd.h $(prefix)/include/cetcd.h
 	install -D cetcd_array.h $(prefix)/include/cetcd_array.h
-	install -D cetcd_json_parser.h $(prefix)/include/cetcd_json_parser.h
 	install -D sds/sds.h $(prefix)/include/sds/sds.h
 
 libcetcd.so: cetcd_array.o sds/sds.o cetcd.o
