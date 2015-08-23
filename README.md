@@ -9,11 +9,16 @@
  cetcd is on active development. It aims to be used in production environment and to supply full features of etcd.
  **Any issues or pull requests are welcome!**
 
-## Deps 
+## Features
+ * Round-robin load balance and failover
+ * Full support for etcd keys space apis
+ * Multiple concurrent watchers support
+
+## Deps
  cetcd use [sds](https://github.com/antirez/sds) as a dynamic string utility.  It is licensed in sds/LICENSE.
  sds is interaged in cetcd's source code, so you don't have to install it before.
 
- [yajl](https://github.com/lloyd/yajl) is a powerful json stream parsing libaray. We use the stream apis to 
+ [yajl](https://github.com/lloyd/yajl) is a powerful json stream parsing libaray. We use the stream apis to
  parse response from cetcd. It is already integrated as a third-party dependency, so you are not necessary to
  install it before.
 
@@ -32,7 +37,7 @@ yum install libcurl-devel
 ```
 then
  ```
- make 
+ make
  make install
  ```
  It default installs to /usr/local.
