@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     cetcd_response_print(resp);
     cetcd_response_release(resp);
 
-    cetcd_array_destory(&addrs);
+    cetcd_array_destroy(&addrs);
     cetcd_client_destroy(&cli);
     return 0;
 }

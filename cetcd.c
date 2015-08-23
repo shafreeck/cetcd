@@ -83,7 +83,7 @@ cetcd_client *cetcd_client_create(cetcd_array *addresses){
 void cetcd_client_destroy(cetcd_client *cli) {
     curl_easy_cleanup(cli->curl);
     curl_global_cleanup();
-    cetcd_array_destory(&cli->watchers);
+    cetcd_array_destroy(&cli->watchers);
 }
 void cetcd_client_release(cetcd_client *cli){
     if (cli) {
@@ -875,15 +875,15 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             } else {
                 parser->st = response_discard_st;
                 yajl_free(parser->json);
-                cetcd_array_destory(&parser->ctx.keystack);
-                cetcd_array_destory(&parser->ctx.nodestack);
+                cetcd_array_destroy(&parser->ctx.keystack);
+                cetcd_array_destroy(&parser->ctx.nodestack);
             }
         }
         if (parser->st == json_end_st) {
             status = yajl_complete_parse(parser->json);
             yajl_free(parser->json);
-            cetcd_array_destory(&parser->ctx.keystack);
-            cetcd_array_destory(&parser->ctx.nodestack);
+            cetcd_array_destroy(&parser->ctx.keystack);
+            cetcd_array_destroy(&parser->ctx.nodestack);
             /*parse failed, TODO set error message*/
             if (status != yajl_status_ok) {
                 if (resp->err == NULL) {

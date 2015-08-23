@@ -12,7 +12,7 @@ cetcd_array *cetcd_array_create(size_t cap) {
 }
 void cetcd_array_release(cetcd_array *ca) {
     if (ca) {
-        cetcd_array_destory(ca);
+        cetcd_array_destroy(ca);
         free(ca);
     }
 }
@@ -66,7 +66,7 @@ void *cetcd_array_pop(cetcd_array *ca) {
     return e;
 }
 
-int cetcd_array_destory(cetcd_array *ca) {
+int cetcd_array_destroy(cetcd_array *ca) {
     if (ca->elem != NULL && ca->cap != 0) {
         free(ca->elem);
         ca->elem = NULL;
