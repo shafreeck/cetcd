@@ -5,6 +5,26 @@
 [![Stories in Ready](https://badge.waffle.io/shafreeck/cetcd.png?label=ready&title=Ready)](https://waffle.io/shafreeck/cetcd)
 [![wercker status](https://app.wercker.com/status/cc417f5b6e093b4d0b962580a3d022cb/s/master "wercker status")](https://app.wercker.com/project/bykey/cc417f5b6e093b4d0b962580a3d022cb)
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Cetcd is a C client for etcd](#cetcd-is-a-c-client-for-etcd)
+  - [Status](#status)
+  - [Features](#features)
+  - [Deps](#deps)
+  - [Install](#install)
+  - [Link](#link)
+  - [Usage](#usage)
+    - [Create an array to store the etcd addresses](#create-an-array-to-store-the-etcd-addresses)
+    - [Init the cetcd_client](#init-the-cetcd_client)
+    - [Set a key](#set-a-key)
+    - [Get a key](#get-a-key)
+    - [List a directory](#list-a-directory)
+    - [Clean all resources](#clean-all-resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Status
  cetcd is on active development. It aims to be used in production environment and to supply full features of etcd.
  **Any issues or pull requests are welcome!**
@@ -42,7 +62,7 @@ then
  ```
  It default installs to /usr/local.
 
- Use 
+ Use
  ```
  make install prefix=/path
  ```
