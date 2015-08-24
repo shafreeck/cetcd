@@ -205,6 +205,7 @@ int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher) {
      * Watchers may hang forever if it would be never triggered after set once to 1
      * FIXME: Cancel the blocking watcher
      * */
+    UNUSED(cli);
     watcher->callback = NULL;
     watcher->once = 1;
     return 1;
@@ -953,8 +954,7 @@ cetcd_response *cetcd_send_request(CURL *curl, cetcd_request *req) {
  * cetcd_cluster_request tries to request the whole cluster. It round-robin to next server if the request failed
  * */
 cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
-    int i;
-    size_t count;
+    size_t i, count;
     cetcd_string url;
     cetcd_error *err;
     cetcd_response *resp;

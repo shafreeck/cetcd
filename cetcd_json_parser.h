@@ -9,6 +9,7 @@ typedef struct yajl_parser_context_t {
     cetcd_array nodestack;
 } yajl_parser_context;
 #define EQ(s, d) ((strncmp((s), (d), sizeof((d)) - 1) == 0) && (sdslen(s) == (sizeof((d))-1)))
+#define UNUSED(v) (void)(v)
 static int cetcd_parse_action(cetcd_string act) {
     if (EQ(act, "set")) {
         return ETCD_SET;
@@ -173,9 +174,11 @@ static int yajl_parse_null_ignore_cb(void *ctx) {
     return 1;
 }
 static int yajl_parse_double_ignore_cb(void *ctx, double val) {
+    UNUSED(val);
     return yajl_parse_null_ignore_cb(ctx);
 }
 static int yajl_parse_bool_ignore_cb(void *ctx, int val) {
+    UNUSED(val);
     return yajl_parse_null_ignore_cb(ctx);
 }
 static yajl_callbacks callbacks = {
@@ -236,6 +239,7 @@ static int yajl_err_parse_map_key_cb(void *ctx, unsigned const char *key, size_t
     return 1;
 }
 static int yajl_err_parse_end_map_cb(void *ctx) {
+    UNUSED(ctx);
     return 1;
 }
 
