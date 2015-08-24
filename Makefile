@@ -1,10 +1,11 @@
-CFLAGS= -Wall -O3 -fPIC -I third-party/build/include
+CFLAGS= -Wall -Wextra -fPIC -I third-party/build/include
 LDFLAGS=-lcurl -lpthread
 prefix=/usr/local
 
+release:CFLAGS += -O3
 release:all
 
-debug:CFLAGS= -g -O0 -Wall -Werror -fPIC -I third-party/build/include
+debug:CFLAGS += -g -O0
 debug:all
 
 all: libcetcd.so
