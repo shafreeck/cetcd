@@ -1,10 +1,12 @@
 #ifndef CETCD_CETCD_H
 #define CETCD_CETCD_H
 #include <curl/curl.h>
+#include <pthread.h>
 #include <stdint.h>
 #include "sds/sds.h"
 #include "cetcd_array.h"
 typedef sds cetcd_string;
+typedef pthread_t cetcd_watch_id;
 
 enum HTTP_METHOD {
     ETCD_HTTP_GET,
@@ -134,7 +136,8 @@ cetcd_watcher *cetcd_watcher_create(cetcd_client *cli, const char *key, uint64_t
 int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher);
 int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher);
 int cetcd_multi_watch(cetcd_client *cli, cetcd_array *watchers);
-int cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers);
+cetcd_watch_id cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers);
+int cetcd_multi_watch_async_stop(cetcd_client *cli, cetcd_watch_id wid);
 int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 
 

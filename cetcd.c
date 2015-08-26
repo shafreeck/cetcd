@@ -353,13 +353,20 @@ static void *cetcd_multi_watch_wrapper(void *args[]) {
     cetcd_multi_watch(cli, watchers);
     return 0;
 }
-int cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers) {
+cetcd_watch_id cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers) {
     pthread_t thread;
     void **args;
     args = calloc(2, sizeof(void *));
     args[0] = cli;
     args[1] = watchers;
-    return pthread_create(&thread, NULL, (void *(*)(void *))cetcd_multi_watch_wrapper, args);
+    pthread_create(&thread, NULL, (void *(*)(void *))cetcd_multi_watch_wrapper, args);
+    return thread;
+}
+int cetcd_multi_watch_async_stop(cetcd_client *cli, cetcd_watch_id wid) {
+    (void) cli;
+    pthread_cancel(wid);
+    pthread_join(wid, 0);
+    return 0;
 }
 
 cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
