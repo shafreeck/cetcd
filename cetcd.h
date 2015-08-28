@@ -102,6 +102,8 @@ cetcd_client* cetcd_client_create(cetcd_array *addresses);
 void          cetcd_client_init(cetcd_client *cli, cetcd_array *addresses);
 void          cetcd_client_destroy(cetcd_client *cli);
 void          cetcd_client_release(cetcd_client *cli);
+void          cetcd_addresses_release(cetcd_array *addrs);
+void          cetcd_client_sync_cluster(cetcd_client *cli);
 
 cetcd_response *cetcd_get(cetcd_client *cli, const char *key);
 cetcd_response *cetcd_lsdir(cetcd_client *cli, const char *key, int sort, int recursive);
