@@ -364,6 +364,11 @@ cetcd_watch_id cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers)
 }
 int cetcd_multi_watch_async_stop(cetcd_client *cli, cetcd_watch_id wid) {
     (void) cli;
+    /* Cancel causes the thread exit immediately, so the resouce has been
+     * allocted won't be freed. The memory leak is OK because the process
+     * is going to exit.
+     * TODO fix the memory leaks
+     * */
     pthread_cancel(wid);
     pthread_join(wid, 0);
     return 0;
