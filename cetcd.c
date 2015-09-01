@@ -49,6 +49,8 @@ static const char *cetcd_event_action[] = {
 void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
 
 void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
+    size_t i;
+    cetcd_array *addrs;
     curl_global_init(CURL_GLOBAL_ALL);
     srand(time(0));
 
@@ -56,7 +58,13 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     cli->stat_space =   "v2/stat";
     cli->member_space = "v2/members";
     cli->curl = curl_easy_init();
-    cli->addresses = cetcd_array_shuffle(addresses);
+    
+    addrs = cetcd_array_create(cetcd_array_size(addresses));
+    for (i=0; i<cetcd_array_size(addresses); ++i) {
+        cetcd_array_append(addrs, sdsnew(cetcd_array_get(addresses, i)));
+    }
+    
+    cli->addresses = cetcd_array_shuffle(addrs);
     cli->picked = rand() % (cetcd_array_size(cli->addresses));
 
     cli->settings.verbose = 0;
@@ -87,6 +95,8 @@ cetcd_client *cetcd_client_create(cetcd_array *addresses){
     return cli;
 }
 void cetcd_client_destroy(cetcd_client *cli) {
+    cetcd_addresses_release(cli->addresses);
+    cetcd_array_release(cli->addresses);
     curl_easy_cleanup(cli->curl);
     curl_global_cleanup();
     cetcd_array_destroy(&cli->watchers);
