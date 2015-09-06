@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "sds/sds.h"
 #include "cetcd_array.h"
+#define CETCD_VERSION release-v0.0.5
 typedef sds cetcd_string;
 typedef pthread_t cetcd_watch_id;
 
