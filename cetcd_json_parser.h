@@ -256,3 +256,61 @@ static yajl_callbacks error_callbacks = {
     NULL,                //start array
     yajl_parse_null_ignore_cb //end array
 };
+
+static int yajl_sync_parse_string_cb(void *ctx, unsigned const char *val, size_t len) {
+    yajl_parser_context *c = ctx;
+    cetcd_array *array = c->userdata;
+    cetcd_string key = cetcd_array_top(&c->keystack);
+    if ( key  && EQ(key, "clientURLs")) {
+        cetcd_array_append(array, sdsnewlen(val+7, len-7));
+    }
+    return 1;
+}
+static int yajl_sync_parse_start_map_cb(void *ctx) {
+    yajl_parser_context *c = ctx;
+    if (c->userdata == NULL) {
+        c->userdata = cetcd_array_create(10);
+    }
+    return 1;
+}
+static int yajl_sync_parse_map_key_cb(void *ctx, const unsigned char *key, size_t len) {
+    yajl_parser_context *c = ctx;
+    cetcd_string name = sdsnewlen(key, len);
+    if (EQ(name, "clientURLs")) {
+        cetcd_array_append(&c->keystack, name);
+    } else {
+        sdsfree(name);
+    }
+    return 1;
+}
+static int yajl_sync_parse_end_map_cb(void *ctx) {
+    yajl_parser_context *c = ctx;
+    cetcd_string key = cetcd_array_pop(&c->keystack);
+    if (key) {
+        sdsfree(key);
+    }
+    return 1;
+}
+static int yajl_sync_parse_end_array_cb(void *ctx) {
+    yajl_parser_context *c = ctx;
+    cetcd_string key;
+    key = cetcd_array_top(&c->keystack);
+    if (key && EQ(key, "clientURLs")) {
+        sdsfree(cetcd_array_pop(&c->keystack));
+    }
+    return 1;
+}
+
+static yajl_callbacks sync_callbacks = {
+    NULL,  //null
+    NULL,  //boolean
+    NULL, //integer
+    NULL, //double
+    NULL, //number
+    yajl_sync_parse_string_cb, //string
+    yajl_sync_parse_start_map_cb, //start map
+    yajl_sync_parse_map_key_cb, //map key
+    yajl_sync_parse_end_map_cb, //end map
+    NULL, //start array
+    yajl_sync_parse_end_array_cb //end array
+};

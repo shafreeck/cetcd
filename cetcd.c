@@ -9,9 +9,13 @@
 #include <yajl/yajl_parse.h>
 #include <sys/select.h>
 #include <pthread.h>
-
+enum ETCD_API_TYPE {
+    ETCD_KEYS,
+    ETCD_MEMBERS
+};
 typedef struct cetcd_request_t {
-    int method;
+    enum HTTP_METHOD method;
+    enum ETCD_API_TYPE api_type;
     cetcd_string uri;
     cetcd_string url;
     cetcd_string data;
@@ -28,8 +32,9 @@ static const char *http_method[] = {
 typedef struct cetcd_response_parser_t {
     int st;
     int http_status;
+    enum ETCD_API_TYPE api_type;
     cetcd_string buf;
-    cetcd_response *resp;
+    void *resp;
     yajl_parser_context ctx;
     yajl_handle json;
 }cetcd_response_parser;
@@ -41,8 +46,11 @@ static const char *cetcd_event_action[] = {
     "delete",
     "expire"
 };
+void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
 
 void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
+    size_t i;
+    cetcd_array *addrs;
     curl_global_init(CURL_GLOBAL_ALL);
     srand(time(0));
 
@@ -50,7 +58,13 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     cli->stat_space =   "v2/stat";
     cli->member_space = "v2/members";
     cli->curl = curl_easy_init();
-    cli->addresses = cetcd_array_shuffle(addresses);
+
+    addrs = cetcd_array_create(cetcd_array_size(addresses));
+    for (i=0; i<cetcd_array_size(addresses); ++i) {
+        cetcd_array_append(addrs, sdsnew(cetcd_array_get(addresses, i)));
+    }
+
+    cli->addresses = cetcd_array_shuffle(addrs);
     cli->picked = rand() % (cetcd_array_size(cli->addresses));
 
     cli->settings.verbose = 0;
@@ -81,6 +95,8 @@ cetcd_client *cetcd_client_create(cetcd_array *addresses){
     return cli;
 }
 void cetcd_client_destroy(cetcd_client *cli) {
+    cetcd_addresses_release(cli->addresses);
+    cetcd_array_release(cli->addresses);
     curl_easy_cleanup(cli->curl);
     curl_global_cleanup();
     cetcd_array_destroy(&cli->watchers);
@@ -90,6 +106,35 @@ void cetcd_client_release(cetcd_client *cli){
         cetcd_client_destroy(cli);
         free(cli);
     }
+}
+void cetcd_addresses_release(cetcd_array *addrs){
+    int count, i;
+    cetcd_string s;
+    if (addrs) {
+        count = cetcd_array_size(addrs);
+        for (i = 0; i < count; ++i) {
+            s = cetcd_array_get(addrs, i);
+            sdsfree(s);
+        }
+    }
+}
+void cetcd_client_sync_cluster(cetcd_client *cli){
+    cetcd_request req;
+    cetcd_array *addrs;
+
+    memset(&req, 0, sizeof(cetcd_request));
+    req.method = ETCD_HTTP_GET;
+    req.api_type = ETCD_MEMBERS;
+    req.uri = sdscatprintf(sdsempty(), "%s", cli->member_space);
+    addrs =  cetcd_cluster_request(cli, &req);
+    sdsfree(req.uri);
+    if (addrs == NULL) {
+        return ;
+    }
+    cetcd_addresses_release(cli->addresses);
+    cetcd_array_release(cli->addresses);
+    cli->addresses = cetcd_array_shuffle(addrs);
+    cli->picked = rand() % (cetcd_array_size(cli->addresses));
 }
 
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
@@ -374,8 +419,6 @@ int cetcd_multi_watch_async_stop(cetcd_client *cli, cetcd_watch_id wid) {
     return 0;
 }
 
-cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
-
 cetcd_response *cetcd_get(cetcd_client *cli, const char *key) {
     return cetcd_lsdir(cli, key, 0, 0);
 }
@@ -406,6 +449,7 @@ cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "value=%s", value);
     if (ttl) {
@@ -425,6 +469,7 @@ cetcd_response *cetcd_mkdir(cetcd_client *cli, const char *key, uint64_t ttl){
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "dir=true&prevExist=false");
     if (ttl) {
@@ -444,6 +489,7 @@ cetcd_response *cetcd_setdir(cetcd_client *cli, const char *key, uint64_t ttl){
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "dir=true");
     if (ttl) {
@@ -463,6 +509,7 @@ cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "dir=true&prevExist=true");
     if (ttl){
@@ -483,6 +530,7 @@ cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "prevExist=true&value=%s", value);
     if (ttl) {
@@ -503,6 +551,7 @@ cetcd_response *cetcd_create(cetcd_client *cli, const char *key,
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "prevExist=false&value=%s", value);
     if (ttl) {
@@ -523,6 +572,7 @@ cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key,
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_POST;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(),"%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "value=%s", value);
     if (ttl){
@@ -541,6 +591,7 @@ cetcd_response *cetcd_delete(cetcd_client *cli, const char *key) {
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_DELETE;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
@@ -553,6 +604,7 @@ cetcd_response *cetcd_rmdir(cetcd_client *cli, const char *key, int recursive){
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_DELETE;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s?dir=true", cli->keys_space, key);
     if (recursive){
         req.uri = sdscatprintf(req.uri, "&recursive=true");
@@ -568,6 +620,7 @@ cetcd_response *cetcd_watch(cetcd_client *cli, const char *key, uint64_t index) 
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_GET;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s?wait=true&waitIndex=%lu", cli->keys_space, key, index);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
@@ -580,6 +633,7 @@ cetcd_response *cetcd_watch_recursive(cetcd_client *cli, const char *key, uint64
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_GET;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s?wait=true&recursive=true&waitIndex=%lu", cli->keys_space, key, index);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
@@ -593,6 +647,7 @@ cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, const char *key, const cha
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "value=%s&prevValue=%s", value, prev);
     if (ttl) {
@@ -611,6 +666,7 @@ cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, const char *key, 
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "value=%s&prevIndex=%lu", value, prev);
     if (ttl) {
@@ -628,6 +684,7 @@ cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, const char *key, const c
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_DELETE;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s?prevValue=%s", cli->keys_space, key, prev);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
@@ -639,6 +696,7 @@ cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, const char *key
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_DELETE;
+    req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s?prevIndex=%lu", cli->keys_space, key, prev);
     resp = cetcd_cluster_request(cli, &req);
     sdsfree(req.uri);
@@ -733,9 +791,10 @@ void cetcd_response_print(cetcd_response *resp) {
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata) {
     int len, i;
     char *key, *val;
-    cetcd_response *resp;
     cetcd_response_parser *parser;
     yajl_status status;
+    cetcd_response *resp = NULL;
+    cetcd_array *addrs = NULL;
 
     enum resp_parser_st {
         request_line_start_st,
@@ -759,9 +818,12 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
      * X-Raft-Index: 672930
      * X-Raft-Term: 12
      * */
-
     parser = userdata;
-    resp = parser->resp;
+    if (parser->api_type == ETCD_MEMBERS) {
+        addrs = parser->resp;
+    } else {
+        resp = parser->resp;
+    }
     len = size * nmemb;
     for (i = 0; i < len; ++i) {
         if (parser->st == request_line_start_st) {
@@ -794,6 +856,9 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             parser->http_status = atoi(val);
             sdsclear(parser->buf);
             parser->st = request_line_end_st;
+            if (parser->api_type == ETCD_MEMBERS && parser->http_status != 200) {
+                parser->st = response_discard_st;
+            }
             continue;
         }
         if (parser->st == header_key_start_st) {
@@ -842,6 +907,10 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
         }
         if (parser->st == header_val_end_st) {
             parser->st = header_key_start_st;
+            if (parser->api_type == ETCD_MEMBERS) {
+                sdsclear(parser->buf);
+                continue;
+            }
             int count = 0;
             sds *kvs = sdssplitlen(parser->buf, sdslen(parser->buf), ":", 1, &count);
             sdsclear(parser->buf);
@@ -865,7 +934,7 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             if (ptr[i] != '{') {
                 /*not a json response, discard*/
                 parser->st = response_discard_st;
-                if (resp->err == NULL) {
+                if (resp->err == NULL && parser->api_type == ETCD_KEYS) {
                     resp->err = calloc(1, sizeof(cetcd_error));
                     resp->err->ecode = error_response_parsed_failed;
                     resp->err->message = sdsnew("not a json response");
@@ -876,13 +945,19 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             parser->st = json_start_st;
             cetcd_array_init(&parser->ctx.keystack, 10);
             cetcd_array_init(&parser->ctx.nodestack, 10);
-            if (parser->http_status != 200 && parser->http_status != 201) {
-                resp->err = calloc(1, sizeof(cetcd_error));
-                parser->ctx.userdata = resp->err;
-                parser->json = yajl_alloc(&error_callbacks, 0, &parser->ctx);
-            } else {
-                parser->ctx.userdata = resp;
-                parser->json = yajl_alloc(&callbacks, 0, &parser->ctx);
+            if (parser->api_type == ETCD_MEMBERS) {
+                parser->ctx.userdata = addrs;
+                parser->json = yajl_alloc(&sync_callbacks, 0, &parser->ctx);
+            }
+            else {
+                if (parser->http_status != 200 && parser->http_status != 201) {
+                    resp->err = calloc(1, sizeof(cetcd_error));
+                    parser->ctx.userdata = resp->err;
+                    parser->json = yajl_alloc(&error_callbacks, 0, &parser->ctx);
+                } else {
+                    parser->ctx.userdata = resp;
+                    parser->json = yajl_alloc(&callbacks, 0, &parser->ctx);
+                }
             }
         }
         if (parser->st == json_start_st) {
@@ -902,7 +977,7 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             cetcd_array_destroy(&parser->ctx.nodestack);
             /*parse failed, TODO set error message*/
             if (status != yajl_status_ok) {
-                if (resp->err == NULL) {
+                if ( parser->api_type == ETCD_KEYS && resp->err == NULL) {
                     resp->err = calloc(1, sizeof(cetcd_error));
                     resp->err->ecode = error_response_parsed_failed;
                     resp->err->message = sdsnew("http response is invalid json format");
@@ -918,13 +993,21 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
     }
     return len;
 }
-cetcd_response *cetcd_send_request(CURL *curl, cetcd_request *req) {
+void *cetcd_send_request(CURL *curl, cetcd_request *req) {
     CURLcode res;
     cetcd_response_parser parser;
-    cetcd_response *resp;
+    cetcd_response *resp = NULL ;
+    cetcd_array *addrs = NULL;
 
-    resp = calloc(1, sizeof(cetcd_response));
-    parser.resp = resp;
+    if (req->api_type == ETCD_MEMBERS) {
+        addrs = cetcd_array_create(10);
+        parser.resp = addrs;
+    } else {
+        resp = calloc(1, sizeof(cetcd_response));
+        parser.resp = resp;
+    }
+
+    parser.api_type = req->api_type;
     parser.st = 0; /*0 should be the start state of the state machine*/
     parser.buf = sdsempty();
 
@@ -952,6 +1035,9 @@ cetcd_response *cetcd_send_request(CURL *curl, cetcd_request *req) {
 
     sdsfree(parser.buf);
     if (res != CURLE_OK) {
+        if (req->api_type == ETCD_MEMBERS) {
+            return addrs;
+        }
         if (resp->err == NULL) {
             resp->err = calloc(1, sizeof(cetcd_error));
             resp->err->ecode = error_send_request_failed;
@@ -960,42 +1046,59 @@ cetcd_response *cetcd_send_request(CURL *curl, cetcd_request *req) {
         }
         return resp;
     }
-    return resp;
+    return parser.resp;
 }
 /*
  * cetcd_cluster_request tries to request the whole cluster. It round-robin to next server if the request failed
  * */
-cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
+void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
     size_t i, count;
     cetcd_string url;
-    cetcd_error *err;
-    cetcd_response *resp;
+    cetcd_error *err = NULL;
+    cetcd_response *resp = NULL;
+    cetcd_array *addrs = NULL;
+    void *res = NULL;
 
-    err = NULL;
-    resp = NULL;
     count = cetcd_array_size(cli->addresses);
-    
+
     for(i = 0; i < count; ++i) {
         url = sdscatprintf(sdsempty(), "http://%s/%s", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked), req->uri);
         req->url = url;
         req->cli = cli;
-        resp = cetcd_send_request(cli->curl, req);
+        res = cetcd_send_request(cli->curl, req);
         sdsfree(url);
 
-        if(resp && resp->err && resp->err->ecode == error_send_request_failed) {
-            if (i == count-1) {
+        if (req->api_type == ETCD_MEMBERS) {
+            addrs = res;
+            /* Got the result addresses, return*/
+            if (addrs && cetcd_array_size(addrs)) {
+                return addrs;
+            }
+            /* Empty or error ? retry */
+            if (addrs) {
+                cetcd_array_release(addrs);
+                addrs = NULL;
+            }
+            if (i == count - 1) {
                 break;
             }
-            /*try next*/
-            cli->picked = (cli->picked + 1) % count;
-            cetcd_response_release(resp);
-            resp = NULL;
-        } else {
-            /*got response, return*/
-            return resp;
+        } else if (req->api_type == ETCD_KEYS) {
+            resp = res;
+            if(resp && resp->err && resp->err->ecode == error_send_request_failed) {
+                if (i == count - 1) {
+                    break;
+                }
+            } else {
+                /*got response, return*/
+                return resp;
+            }
+
         }
+        /*try next*/
+        cli->picked = (cli->picked + 1) % count;
     }
     /*the whole cluster failed*/
+    if (req->api_type == ETCD_MEMBERS) return NULL;
     if (resp) {
         if(resp->err) {
             err = resp->err; /*remember last error*/
@@ -1004,8 +1107,8 @@ cetcd_response *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
         resp->err->ecode = error_cluster_failed;
         resp->err->message = sdsnew("etcd_do_request: all cluster servers failed.");
         if (err) {
-           resp->err->message = sdscatprintf(resp->err->message, " last error: %s", err->message);
-           cetcd_error_release(err);
+            resp->err->message = sdscatprintf(resp->err->message, " last error: %s", err->message);
+            cetcd_error_release(err);
         }
         resp->err->cause = sdsdup(req->uri);
     }
