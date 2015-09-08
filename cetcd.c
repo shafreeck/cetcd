@@ -1063,30 +1063,34 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
         res = cetcd_send_request(cli->curl, req);
         sdsfree(url);
 
-        /*api_type == syncCluster,  got address, return*/
-        if (req->api_type == ETCD_MEMBERS ){
-            if ((addrs = res)) {
-                if ( cetcd_array_size(addrs)) {
-                    return addrs;
-                } else {
-                    cetcd_array_destroy(addrs);
-                }
+        if (req->api_type == ETCD_MEMBERS) {
+            addrs = res;
+            /* Got the result addresses, return*/
+            if (addrs && cetcd_array_size(addrs)) {
+                return addrs;
             }
-        } else {
-            if((resp=res) && resp->err && resp->err->ecode == error_send_request_failed) {
-                if (i != count-1) { 
-                    cetcd_response_release(resp);
-                    resp = NULL;
+            /* Empty or error ? retry */
+            if (addrs) {
+                cetcd_array_release(addrs);
+                addrs = NULL;
+            }
+            if (i == count - 1) {
+                break;
+            }
+        } else if (req->api_type == ETCD_KEYS) {
+            resp = res;
+            if(resp && resp->err && resp->err->ecode == error_send_request_failed) {
+                if (i == count - 1) {
+                    break;
                 }
             } else {
                 /*got response, return*/
                 return resp;
             }
+
         }
         /*try next*/
-        if (i != count-1) {
-            cli->picked = (cli->picked + 1) % count;
-        }
+        cli->picked = (cli->picked + 1) % count;
     }
     /*the whole cluster failed*/
     if (req->api_type == ETCD_MEMBERS) return NULL;
