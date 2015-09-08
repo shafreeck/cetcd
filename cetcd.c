@@ -903,6 +903,7 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
         if (parser->st == header_val_end_st) {
             parser->st = header_key_start_st;
             if (parser->api_type == ETCD_MEMBERS) {
+                sdsclear(parser->buf);
                 continue;
             }
             int count = 0;
