@@ -58,12 +58,12 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     cli->stat_space =   "v2/stat";
     cli->member_space = "v2/members";
     cli->curl = curl_easy_init();
-    
+
     addrs = cetcd_array_create(cetcd_array_size(addresses));
     for (i=0; i<cetcd_array_size(addresses); ++i) {
         cetcd_array_append(addrs, sdsnew(cetcd_array_get(addresses, i)));
     }
-    
+
     cli->addresses = cetcd_array_shuffle(addrs);
     cli->picked = rand() % (cetcd_array_size(cli->addresses));
 
@@ -135,7 +135,7 @@ void cetcd_client_sync_cluster(cetcd_client *cli){
     cetcd_array_release(cli->addresses);
     cli->addresses = cetcd_array_shuffle(addrs);
     cli->picked = rand() % (cetcd_array_size(cli->addresses));
-}     
+}
 
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
 
@@ -999,7 +999,7 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
     } else {
         resp = calloc(1, sizeof(cetcd_response));
         parser.resp = resp;
-    } 
+    }
 
     parser.api_type = req->api_type;
     parser.st = 0; /*0 should be the start state of the state machine*/
