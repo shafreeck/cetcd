@@ -1088,6 +1088,7 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
                 if (i == count - 1) {
                     break;
                 }
+            cetcd_response_release(resp);
             } else {
                 /*got response, return*/
                 return resp;
