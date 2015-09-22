@@ -29,6 +29,12 @@ static int cetcd_parse_action(cetcd_string act) {
     if (EQ(act, "expire")) {
         return ETCD_EXPIRE;
     }
+    if (EQ(act, "compareAndSwap")) {
+        return ETCD_CAS;
+    }
+    if (EQ(act, "compareAndDelete")) {
+        return ETCD_CAD;
+    }
     return -1;
 }
 static int yajl_parse_bool_cb(void *ctx, int val) {

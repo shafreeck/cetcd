@@ -44,7 +44,9 @@ static const char *cetcd_event_action[] = {
     "update",
     "create",
     "delete",
-    "expire"
+    "expire",
+    "compareAndSwap",
+    "compareAndDelete"
 };
 void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
 

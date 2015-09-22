@@ -24,6 +24,8 @@ enum ETCD_EVENT_ACTION {
     ETCD_CREATE,
     ETCD_DELETE,
     ETCD_EXPIRE,
+    ETCD_CAS,
+    ETCD_CAD,
     ETCD_ACTION_MAX
 };
 /* etcd error codes range is [100, 500]
