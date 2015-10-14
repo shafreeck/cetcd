@@ -53,7 +53,7 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
 void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     size_t i;
     cetcd_array *addrs;
-    cetcd_string a, addr;
+    cetcd_string addr;
     curl_global_init(CURL_GLOBAL_ALL);
     srand(time(0));
 
@@ -64,13 +64,12 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 
     addrs = cetcd_array_create(cetcd_array_size(addresses));
     for (i=0; i<cetcd_array_size(addresses); ++i) {
-        addr = sdsnew(cetcd_array_get(addresses, i));
+        addr = cetcd_array_get(addresses, i);
         if ( strncmp(addr, "http", 4)) {
-            a = addr;
-            addr = sdscatprintf(sdsempty(), "http://%s", a);
-            sdsfree(a);
+            cetcd_array_append(addrs, sdscatprintf(sdsempty(), "http://%s", addr));
+        } else {
+            cetcd_array_append(addrs, sdsnew(addr));
         }
-        cetcd_array_append(addrs, addr);
     }
 
     cli->addresses = cetcd_array_shuffle(addrs);
