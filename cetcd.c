@@ -1108,7 +1108,7 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
         }
         resp->err = calloc(1, sizeof(cetcd_error));
         resp->err->ecode = error_cluster_failed;
-        resp->err->message = sdsnew("etcd_do_request: all cluster servers failed.");
+        resp->err->message = sdsnew("etcd_cluster_request: all cluster servers failed.");
         if (err) {
             resp->err->message = sdscatprintf(resp->err->message, " last error: %s", err->message);
             cetcd_error_release(err);
