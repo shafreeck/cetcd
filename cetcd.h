@@ -107,6 +107,7 @@ void          cetcd_client_destroy(cetcd_client *cli);
 void          cetcd_client_release(cetcd_client *cli);
 void          cetcd_addresses_release(cetcd_array *addrs);
 void          cetcd_client_sync_cluster(cetcd_client *cli);
+void          cetcd_setup_user(cetcd_client *cli, const char *user, const char *password);
 void          cetcd_setup_tls(cetcd_client *cli, const char *CA, 
         const char *cert, const char *key);
 

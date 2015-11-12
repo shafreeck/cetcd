@@ -79,6 +79,8 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     cli->settings.connect_timeout = 1;
     cli->settings.read_timeout = 1;  /*not used now*/
     cli->settings.write_timeout = 1; /*not used now*/
+    cli->settings.user = NULL;
+    cli->settings.password = NULL;
 
     cetcd_array_init(&cli->watchers, 10);
 
@@ -106,6 +108,8 @@ cetcd_client *cetcd_client_create(cetcd_array *addresses){
 void cetcd_client_destroy(cetcd_client *cli) {
     cetcd_addresses_release(cli->addresses);
     cetcd_array_release(cli->addresses);
+    sdsfree(cli->settings.user);
+    sdsfree(cli->settings.password);
     curl_easy_cleanup(cli->curl);
     curl_global_cleanup();
     cetcd_array_destroy(&cli->watchers);
@@ -144,6 +148,15 @@ void cetcd_client_sync_cluster(cetcd_client *cli){
     cetcd_array_release(cli->addresses);
     cli->addresses = cetcd_array_shuffle(addrs);
     cli->picked = rand() % (cetcd_array_size(cli->addresses));
+}
+void cetcd_setup_user(cetcd_client *cli, const char* user, const char* password)
+{
+    if (user != NULL) {
+        cli->settings.user = sdsnew(user);
+    }
+    if (password !=NULL) {
+        cli->settings.password = sdsnew(password);
+    }
 }
 
 void cetcd_setup_tls(cetcd_client *cli, const char *CA, const char *cert, const char *key) {
@@ -1044,6 +1057,12 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
          * reused by next request.
          * */
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
+    }
+    if (req->cli->settings.user) {
+        curl_easy_setopt(curl, CURLOPT_USERNAME, req->cli->settings.user);
+    }
+    if (req->cli->settings.password) {
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, req->cli->settings.password);
     }
     curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
