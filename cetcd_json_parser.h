@@ -268,7 +268,7 @@ static int yajl_sync_parse_string_cb(void *ctx, unsigned const char *val, size_t
     cetcd_array *array = c->userdata;
     cetcd_string key = cetcd_array_top(&c->keystack);
     if ( key  && EQ(key, "clientURLs")) {
-        cetcd_array_append(array, sdsnewlen(val+7, len-7));
+        cetcd_array_append(array, sdsnewlen(val, len));
     }
     return 1;
 }

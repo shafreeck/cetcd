@@ -10,8 +10,8 @@ int main(int argc, char *argv[]) {
     cetcd_array addrs;
 
     cetcd_array_init(&addrs, 3);
-    cetcd_array_append(&addrs, "127.0.0.1:2379");
-    cetcd_array_append(&addrs, "127.0.0.1:2378");
+    cetcd_array_append(&addrs, "https://127.0.0.1:2379");
+    cetcd_array_append(&addrs, "http://127.0.0.1:2378");
     cetcd_array_append(&addrs, "127.0.0.1:2377");
 
     cetcd_client_init(&cli, &addrs);
