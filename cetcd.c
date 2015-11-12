@@ -53,6 +53,7 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
 void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     size_t i;
     cetcd_array *addrs;
+    cetcd_string addr;
     curl_global_init(CURL_GLOBAL_ALL);
     srand(time(0));
 
@@ -63,7 +64,12 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 
     addrs = cetcd_array_create(cetcd_array_size(addresses));
     for (i=0; i<cetcd_array_size(addresses); ++i) {
-        cetcd_array_append(addrs, sdsnew(cetcd_array_get(addresses, i)));
+        addr = cetcd_array_get(addresses, i);
+        if ( strncmp(addr, "http", 4)) {
+            cetcd_array_append(addrs, sdscatprintf(sdsempty(), "http://%s", addr));
+        } else {
+            cetcd_array_append(addrs, sdsnew(addr));
+        }
     }
 
     cli->addresses = cetcd_array_shuffle(addrs);
@@ -90,6 +96,7 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 #endif
     curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
+    curl_easy_setopt(cli->curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1); 
 }
 cetcd_client *cetcd_client_create(cetcd_array *addresses){
     cetcd_client *cli;
@@ -152,6 +159,18 @@ void cetcd_setup_user(cetcd_client *cli, const char* user, const char* password)
     }
 }
 
+void cetcd_setup_tls(cetcd_client *cli, const char *CA, const char *cert, const char *key) {
+    if (CA) {
+        curl_easy_setopt(cli->curl, CURLOPT_CAINFO, CA);
+    }
+    if (cert) {
+        curl_easy_setopt(cli->curl, CURLOPT_SSLCERT, cert);
+    } 
+    if (key) {
+        curl_easy_setopt(cli->curl, CURLOPT_SSLKEY, key);
+    }
+}
+
 size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata);
 
 cetcd_watcher *cetcd_watcher_create(cetcd_client *cli, const char *key, uint64_t index,
@@ -195,7 +214,7 @@ void cetcd_watcher_release(cetcd_watcher *watcher) {
 }
 static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *watcher) {
     cetcd_string url;
-    url = sdscatprintf(sdsempty(), "http://%s/%s%s?wait=true", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked),
+    url = sdscatprintf(sdsempty(), "%s/%s%s?wait=true", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked),
             cli->keys_space, watcher->key);
     if (watcher->index) {
         url = sdscatprintf(url, "&waitIndex=%lu", watcher->index);
@@ -1083,7 +1102,7 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
     count = cetcd_array_size(cli->addresses);
 
     for(i = 0; i < count; ++i) {
-        url = sdscatprintf(sdsempty(), "http://%s/%s", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked), req->uri);
+        url = sdscatprintf(sdsempty(), "%s/%s", (cetcd_string)cetcd_array_get(cli->addresses, cli->picked), req->uri);
         req->url = url;
         req->cli = cli;
         res = cetcd_send_request(cli->curl, req);
@@ -1127,7 +1146,7 @@ void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req) {
         }
         resp->err = calloc(1, sizeof(cetcd_error));
         resp->err->ecode = error_cluster_failed;
-        resp->err->message = sdsnew("etcd_do_request: all cluster servers failed.");
+        resp->err->message = sdsnew("etcd_cluster_request: all cluster servers failed.");
         if (err) {
             resp->err->message = sdscatprintf(resp->err->message, " last error: %s", err->message);
             cetcd_error_release(err);
