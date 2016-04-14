@@ -62,7 +62,7 @@ typedef struct cetcd_client_t {
 } cetcd_client;
 
 typedef struct cetcd_response_node_t {
-    cetcd_array *nodes; //struct etcd_response_node_t 
+    cetcd_array *nodes; //struct etcd_response_node_t
     char *key;
     char *value;
     int dir; /* 1 for true, and 0 for false */
@@ -108,7 +108,7 @@ void          cetcd_client_release(cetcd_client *cli);
 void          cetcd_addresses_release(cetcd_array *addrs);
 void          cetcd_client_sync_cluster(cetcd_client *cli);
 void          cetcd_setup_user(cetcd_client *cli, const char *user, const char *password);
-void          cetcd_setup_tls(cetcd_client *cli, const char *CA, 
+void          cetcd_setup_tls(cetcd_client *cli, const char *CA,
         const char *cert, const char *key);
 
 cetcd_response *cetcd_get(cetcd_client *cli, const char *key);
@@ -119,11 +119,11 @@ cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
 cetcd_response *cetcd_mkdir(cetcd_client *cli, const char *key, uint64_t ttl);
 cetcd_response *cetcd_setdir(cetcd_client *cli, const char *key, uint64_t ttl);
 cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl);
-cetcd_response *cetcd_update(cetcd_client *cli, const char *key, 
+cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
+                             const char *value, uint64_t ttl, int refresh);
+cetcd_response *cetcd_create(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
-cetcd_response *cetcd_create(cetcd_client *cli, const char *key, 
-        const char *value, uint64_t ttl);
-cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key, 
+cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
 
 cetcd_response *cetcd_delete(cetcd_client *cli, const char *key);
