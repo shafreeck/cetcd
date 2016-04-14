@@ -119,11 +119,11 @@ cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
 cetcd_response *cetcd_mkdir(cetcd_client *cli, const char *key, uint64_t ttl);
 cetcd_response *cetcd_setdir(cetcd_client *cli, const char *key, uint64_t ttl);
 cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl);
-cetcd_response *cetcd_update(cetcd_client *cli, const char *key, 
+cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
+                             const char *value, uint64_t ttl, int refresh);
+cetcd_response *cetcd_create(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
-cetcd_response *cetcd_create(cetcd_client *cli, const char *key, 
-        const char *value, uint64_t ttl);
-cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key, 
+cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
 
 cetcd_response *cetcd_delete(cetcd_client *cli, const char *key);

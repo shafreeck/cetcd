@@ -556,8 +556,8 @@ cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl
     return resp;
 }
 
-cetcd_response *cetcd_update(cetcd_client *cli, const char *key, 
-        const char *value, uint64_t ttl) {
+cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
+                             const char *value, uint64_t ttl, int refresh) {
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
