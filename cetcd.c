@@ -22,7 +22,7 @@ typedef struct cetcd_request_t {
     cetcd_client *cli;
 } cetcd_request;
 static const char *http_method[] = {
-    "GET", 
+    "GET",
     "POST",
     "PUT",
     "DELETE",
@@ -96,7 +96,7 @@ void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
 #endif
     curl_easy_setopt(cli->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(cli->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
-    curl_easy_setopt(cli->curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1); 
+    curl_easy_setopt(cli->curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
 }
 cetcd_client *cetcd_client_create(cetcd_array *addresses){
     cetcd_client *cli;
@@ -165,7 +165,7 @@ void cetcd_setup_tls(cetcd_client *cli, const char *CA, const char *cert, const 
     }
     if (cert) {
         curl_easy_setopt(cli->curl, CURLOPT_SSLCERT, cert);
-    } 
+    }
     if (key) {
         curl_easy_setopt(cli->curl, CURLOPT_SSLKEY, key);
     }
@@ -245,7 +245,7 @@ int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
 #endif
     curl_easy_setopt(watcher->curl, CURLOPT_USERAGENT, "cetcd");
     curl_easy_setopt(watcher->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
-    curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose); 
+    curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose);
 
     curl_easy_setopt(watcher->curl, CURLOPT_CUSTOMREQUEST, "GET");
     curl_easy_setopt(watcher->curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
@@ -566,9 +566,15 @@ cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
     req.method = ETCD_HTTP_PUT;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "prevExist=true&value=%s", value);
+    params = sdscatprintf(sdsempty(), "prevExist=true");
+    if (value) {
+        params = sdscatprintf(params, "&value=%s", value);
+    }
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
+    }
+    if (refresh) {
+        params = sdscatprintf(params, "&refresh=true");
     }
     req.data = params;
     resp = cetcd_cluster_request(cli, &req);
@@ -1053,7 +1059,7 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
         /* We must clear post fields here:
          * We reuse the curl handle for all HTTP methods.
          * CURLOPT_POSTFIELDS would be set when issue a PUT request.
-         * The field  pointed to the freed req->data. It would be 
+         * The field  pointed to the freed req->data. It would be
          * reused by next request.
          * */
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
@@ -1068,7 +1074,7 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &parser);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose); 
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, req->cli->settings.connect_timeout);
 
     res = curl_easy_perform(curl);
