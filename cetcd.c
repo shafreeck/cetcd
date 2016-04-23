@@ -224,34 +224,43 @@ static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *wa
     }
     return url;
 }
-int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
-    cetcd_watcher *w;
+int cetcd_curl_setopt(CURL *curl, cetcd_watcher *watcher) {
     cetcd_string url;
 
     url = cetcd_watcher_build_url(watcher->cli, watcher);
-    curl_easy_setopt(watcher->curl,CURLOPT_URL, url);
+    curl_easy_setopt(curl,CURLOPT_URL, url);
     sdsfree(url);
-
-    watcher->attempts = cetcd_array_size(watcher->cli->addresses);
 
     /* See above about CURLOPT_NOSIGNAL
      * */
-    curl_easy_setopt(watcher->curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
-    curl_easy_setopt(watcher->curl, CURLOPT_CONNECTTIMEOUT, watcher->cli->settings.connect_timeout);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, watcher->cli->settings.connect_timeout);
 #if LIBCURL_VERSION_NUM >= 0x071900
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPALIVE, 1L);
     curl_easy_setopt(watcher->curl, CURLOPT_TCP_KEEPINTVL, 1L); /*the same as go-etcd*/
 #endif
-    curl_easy_setopt(watcher->curl, CURLOPT_USERAGENT, "cetcd");
-    curl_easy_setopt(watcher->curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
-    curl_easy_setopt(watcher->curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "cetcd");
+    curl_easy_setopt(curl, CURLOPT_POSTREDIR, 3L);     /*post after redirecting*/
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, watcher->cli->settings.verbose);
 
-    curl_easy_setopt(watcher->curl, CURLOPT_CUSTOMREQUEST, "GET");
-    curl_easy_setopt(watcher->curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
-    curl_easy_setopt(watcher->curl, CURLOPT_WRITEDATA, watcher->parser);
-    curl_easy_setopt(watcher->curl, CURLOPT_HEADER, 1L);
-    curl_easy_setopt(watcher->curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "GET");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, watcher->parser);
+    curl_easy_setopt(curl, CURLOPT_HEADER, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_PRIVATE, watcher);
+    watcher->curl = curl;
+
+    return 1;
+}
+int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
+    cetcd_watcher *w;
+
+    cetcd_curl_setopt(watcher->curl, watcher);
+
+    watcher->attempts = cetcd_array_size(watcher->cli->addresses);
     /* We use an array to store watchers. It will cause holes when remove some watchers.
      * watcher->array_index is used to reset to the original hole if the watcher was deleted before.
      * */
@@ -315,6 +324,8 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
                     curl_multi_remove_handle(mcurl, curl);
+                    curl_easy_reset(curl);
+                    cetcd_curl_setopt(curl, watcher);
                     curl_multi_add_handle(mcurl, curl);
                     /*++added;
                      *watcher->attempts --;
@@ -352,6 +363,8 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     sdsfree(url);
                 }
                 curl_multi_remove_handle(mcurl, curl);
+                curl_easy_reset(curl);
+                cetcd_curl_setopt(curl, watcher);
                 curl_multi_add_handle(mcurl, curl);
                 ++added;
                 continue;
@@ -388,7 +401,7 @@ int cetcd_multi_watch(cetcd_client *cli, cetcd_array *watchers) {
             FD_ZERO(&r);
             FD_ZERO(&w);
             FD_ZERO(&e);
-            curl_multi_fdset(mcurl, &r, &w, &e, &maxfd);
+
             curl_multi_timeout(mcurl, &timeout);
             if (timeout == -1) {
                 timeout = 100; /*wait for 0.1 seconds*/
@@ -396,8 +409,12 @@ int cetcd_multi_watch(cetcd_client *cli, cetcd_array *watchers) {
             tv.tv_sec = timeout/1000;
             tv.tv_usec = (timeout%1000)*1000;
 
+            curl_multi_fdset(mcurl, &r, &w, &e, &maxfd);
+
             /*TODO handle errors*/
             select(maxfd+1, &r, &w, &e, &tv);
+
+            curl_multi_perform(mcurl, &left);
         }
         added = cetcd_reap_watchers(cli, mcurl);
         if (added == 0 && left == 0) {
