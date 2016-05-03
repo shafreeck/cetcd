@@ -1018,20 +1018,15 @@ size_t cetcd_parse_response(char *ptr, size_t size, size_t nmemb, void *userdata
             }
         }
         if (parser->st == json_start_st) {
-            if (yajl_status_ok != yajl_parse(parser->json, (const unsigned char *)ptr + i, len - i)) {
-                parser->st = json_end_st;
+            if (yajl_status_ok == yajl_parse(parser->json, (const unsigned char *)ptr + i, len - i)) {
+                //all text left has been parsed, break the for loop
+                break;
             } else {
-                parser->st = response_discard_st;
-                yajl_free(parser->json);
-                cetcd_array_destroy(&parser->ctx.keystack);
-                cetcd_array_destroy(&parser->ctx.nodestack);
+                parser->st = json_end_st;
             }
         }
         if (parser->st == json_end_st) {
             status = yajl_complete_parse(parser->json);
-            yajl_free(parser->json);
-            cetcd_array_destroy(&parser->ctx.keystack);
-            cetcd_array_destroy(&parser->ctx.nodestack);
             /*parse failed, TODO set error message*/
             if (status != yajl_status_ok) {
                 if ( parser->api_type == ETCD_KEYS && resp->err == NULL) {
@@ -1096,7 +1091,14 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
 
     res = curl_easy_perform(curl);
 
+    //release the parser resource
     sdsfree(parser.buf);
+    if (parser.json) {
+        yajl_free(parser.json);
+        cetcd_array_destroy(&parser.ctx.keystack);
+        cetcd_array_destroy(&parser.ctx.nodestack);
+    }
+
     if (res != CURLE_OK) {
         if (req->api_type == ETCD_MEMBERS) {
             return addrs;
