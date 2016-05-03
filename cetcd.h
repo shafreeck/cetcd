@@ -101,35 +101,63 @@ typedef struct cetcd_watcher_t {
     cetcd_watcher_callback callback;
 } cetcd_watcher;
 
+/*cetcd_client_create allocate the cetcd_client and return the pointer*/
 cetcd_client* cetcd_client_create(cetcd_array *addresses);
+/*cetcd_client_init initialize a cetcd_client*/
 void          cetcd_client_init(cetcd_client *cli, cetcd_array *addresses);
+/*cetcd_client_destroy destroy the resource a client used*/
 void          cetcd_client_destroy(cetcd_client *cli);
+/*cetcd_client_release free the cetcd_client object*/
 void          cetcd_client_release(cetcd_client *cli);
+/*cetcd_addresses_release free the array of an etcd cluster addresses*/
 void          cetcd_addresses_release(cetcd_array *addrs);
+/*cetcd_client_sync_cluster sync the members of an etcd cluster, this may be used
+ * when the members of etcd changed
+ * */
 void          cetcd_client_sync_cluster(cetcd_client *cli);
+
+/*cetcd_setup_user set the auth username and password*/
 void          cetcd_setup_user(cetcd_client *cli, const char *user, const char *password);
+
+/*cetcd_setup_tls setup the tls cert and key*/
 void          cetcd_setup_tls(cetcd_client *cli, const char *CA,
         const char *cert, const char *key);
 
+/*cetcd_get get the value of a key*/
 cetcd_response *cetcd_get(cetcd_client *cli, const char *key);
+/*cetcd_lsdir list the nodes under a directory*/
 cetcd_response *cetcd_lsdir(cetcd_client *cli, const char *key, int sort, int recursive);
 
+/*cetcd_set set the value of a key*/
 cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
+
+/*cetcd_mkdir create a directroy, it will fail if the key has exist*/
 cetcd_response *cetcd_mkdir(cetcd_client *cli, const char *key, uint64_t ttl);
+
+/*cetcd_mkdir create a directory whether it exist or not*/
 cetcd_response *cetcd_setdir(cetcd_client *cli, const char *key, uint64_t ttl);
+
+/*cetcd_updatedir update the ttl of a directory*/
 cetcd_response *cetcd_updatedir(cetcd_client *cli, const char *key, uint64_t ttl);
+
+/*cetcd_update update the value or ttl of a key, only refresh the ttl if refresh is set*/
 cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
                              const char *value, uint64_t ttl, int refresh);
+/*cetcd_create create a node with value*/
 cetcd_response *cetcd_create(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
+/*cetcd_create_in_order create in order keys*/
 cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key,
         const char *value, uint64_t ttl);
-
+/*cetcd_delete delete a key*/
 cetcd_response *cetcd_delete(cetcd_client *cli, const char *key);
+/*cetcd_rmdir delete a directory*/
 cetcd_response *cetcd_rmdir(cetcd_client *cli, const char *key, int recursive);
 
+/*cetcd_watch watch the changes of a key*/
 cetcd_response *cetcd_watch(cetcd_client *cli, const char *key, uint64_t index);
+/*cetcd_watch_recursive watch a key and all its sub keys*/
 cetcd_response *cetcd_watch_recursive(cetcd_client *cli, const char *key, uint64_t index);
 
 cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, const char *key, const char *value,
@@ -139,13 +167,21 @@ cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, const char *key, 
 cetcd_response *cetcd_cmp_and_delete(cetcd_client *cli, const char *key, const char *prev);
 cetcd_response *cetcd_cmp_and_delete_by_index(cetcd_client *cli, const char *key, uint64_t prev);
 
+/*cetcd_watcher_create create a watcher object*/
 cetcd_watcher *cetcd_watcher_create(cetcd_client *cli, const char *key, uint64_t index,
         int recursive, int once, cetcd_watcher_callback callback, void *userdata);
+/*cetcd_add_watcher add a watcher to the array*/
 int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher);
+/*cetcd_del_watcher delete a watcher from the array*/
 int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher);
+
+/*cetcd_multi_watch setup all watchers and wait*/
 int cetcd_multi_watch(cetcd_client *cli, cetcd_array *watchers);
+/*cetcd_multi_watch setup all watchers in a seperate thread and return the watch id*/
 cetcd_watch_id cetcd_multi_watch_async(cetcd_client *cli, cetcd_array *watchers);
+/*cetcd_multi_watch stop the watching thread with the watch id*/
 int cetcd_multi_watch_async_stop(cetcd_client *cli, cetcd_watch_id wid);
+/*cetcd_stop_watcher stop a watcher which has been setup*/
 int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 
 
