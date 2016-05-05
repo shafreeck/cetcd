@@ -49,6 +49,7 @@ static const char *cetcd_event_action[] = {
     "compareAndDelete"
 };
 void *cetcd_cluster_request(cetcd_client *cli, cetcd_request *req);
+int cetcd_curl_setopt(CURL *curl, cetcd_watcher *watcher);
 
 void cetcd_client_init(cetcd_client *cli, cetcd_array *addresses) {
     size_t i;
@@ -206,10 +207,45 @@ void cetcd_watcher_release(cetcd_watcher *watcher) {
         }
         if (watcher->parser) {
             sdsfree(watcher->parser->buf);
+            if (watcher->parser->json) {
+                yajl_free(watcher->parser->json);
+                cetcd_array_destroy(&watcher->parser->ctx.keystack);
+                cetcd_array_destroy(&watcher->parser->ctx.nodestack);
+            }
             cetcd_response_release(watcher->parser->resp);
             free(watcher->parser);
         }
         free(watcher);
+    }
+}
+
+/*reset the temp resource one time watching used*/
+void cetcd_watcher_reset(cetcd_watcher *watcher) {
+    if (!watcher){
+        return;
+    }
+
+    /*reset the curl handler*/
+    curl_easy_reset(watcher->curl);
+    cetcd_curl_setopt(watcher->curl, watcher);
+
+    if (watcher->parser) {
+        watcher->parser->st = 0;
+        /*allocate the resp, because it is freed after calling the callback*/
+        watcher->parser->resp = calloc(1, sizeof(cetcd_response));
+
+        /*clear the buf, it is allocated by cetcd_watcher_create,
+         * so should only be freed in cetcd_watcher_release*/
+        sdsclear(watcher->parser->buf);
+
+        /*the json object created by cetcd_parse_response, so it should be freed
+         * after having got some response*/
+        if (watcher->parser->json) {
+            yajl_free(watcher->parser->json);
+            cetcd_array_destroy(&watcher->parser->ctx.keystack);
+            cetcd_array_destroy(&watcher->parser->ctx.nodestack);
+            watcher->parser->json = NULL;
+        }
     }
 }
 static cetcd_string cetcd_watcher_build_url(cetcd_client *cli, cetcd_watcher *watcher) {
@@ -353,19 +389,16 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                 watcher->parser->resp = NULL; /*surpress it be freed again by cetcd_watcher_release*/
             }
             if (!watcher->once) {
-                sdsclear(watcher->parser->buf);
-                watcher->parser->st = 0;
-                watcher->parser->resp = calloc(1, sizeof(cetcd_response));
+                curl_multi_remove_handle(mcurl, curl);
+                cetcd_watcher_reset(watcher);
+
                 if (watcher->index) {
                     watcher->index = index + 1;
                     url = cetcd_watcher_build_url(cli, watcher);
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
                 }
-                curl_multi_remove_handle(mcurl, curl);
-                curl_easy_reset(curl);
-                cetcd_curl_setopt(curl, watcher);
-                curl_multi_add_handle(mcurl, curl);
+                curl_multi_add_handle(mcurl, watcher->curl);
                 ++added;
                 continue;
             }
