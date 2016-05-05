@@ -15,6 +15,7 @@
   - [Deps](#deps)
   - [Install](#install)
   - [Link](#link)
+  - [Examples](#examples)
   - [Usage](#usage)
     - [Create an array to store the etcd addresses](#create-an-array-to-store-the-etcd-addresses)
     - [Init the cetcd_client](#init-the-cetcd_client)
@@ -70,6 +71,11 @@ then
 
 ## Link
  Use `-lcetcd` to link the library
+
+## Examples
+* [cetcd_get.c](examples/cetcd_get.c)
+* [cetcd_lsdir.c](examples/cetcd_lsdir.c)
+* [multi_watch.c](examples/multi_watch.c)
 
 ## Usage
 cetcd_array is an expandable dynamic array. It is used to pass etcd cluster addresses, and return cetcd response nodes
