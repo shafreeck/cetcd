@@ -12,7 +12,7 @@ size_t cetcd_array_size(cetcd_array *ca);
 size_t cetcd_array_cap(cetcd_array *ca); 
 
 cetcd_array *cetcd_array_create(size_t cap);
-void         cetcd_array_release();
+void         cetcd_array_release(cetcd_array *ca);
 
 int cetcd_array_init(cetcd_array *ca, size_t cap);
 int cetcd_array_destroy(cetcd_array *ca);
