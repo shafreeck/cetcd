@@ -1,5 +1,10 @@
 #ifndef CETCD_CETCD_H
 #define CETCD_CETCD_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <curl/curl.h>
 #include <pthread.h>
 #include <stdint.h>
@@ -188,4 +193,9 @@ int cetcd_stop_watcher(cetcd_client *cli, cetcd_watcher *watcher);
 void cetcd_response_print(cetcd_response *resp);
 void cetcd_response_release(cetcd_response *resp);
 void cetcd_error_release(cetcd_error *err);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
 #endif
