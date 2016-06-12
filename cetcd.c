@@ -1095,6 +1095,7 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
     parser.api_type = req->api_type;
     parser.st = 0; /*0 should be the start state of the state machine*/
     parser.buf = sdsempty();
+    parser.json = NULL;
 
     curl_easy_setopt(curl, CURLOPT_URL, req->url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, http_method[req->method]);
