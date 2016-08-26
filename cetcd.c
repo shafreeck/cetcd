@@ -315,7 +315,7 @@ int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
 int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
     size_t index;
     index = watcher->array_index;
-    if (watcher && index > 0) {
+    if (watcher && index >= 0) {
         cetcd_array_set(watchers, index, NULL);
         cetcd_watcher_release(watcher);
     }
