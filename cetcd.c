@@ -360,6 +360,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
                     curl_multi_remove_handle(mcurl, curl);
+                    watcher->parser->st = 0;
                     curl_easy_reset(curl);
                     cetcd_curl_setopt(curl, watcher);
                     curl_multi_add_handle(mcurl, curl);
