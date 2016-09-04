@@ -313,7 +313,7 @@ int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
     return 1;
 }
 int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
-    size_t index;
+    int index;
     index = watcher->array_index;
     if (watcher && index >= 0) {
         cetcd_array_set(watchers, index, NULL);
@@ -1123,9 +1123,13 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
     curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, req->cli->settings.connect_timeout);
+    struct curl_slist *chunk = NULL;
+    chunk = curl_slist_append(chunk, "Expect:");
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
     res = curl_easy_perform(curl);
 
+    curl_slist_free_all(chunk);
     //release the parser resource
     sdsfree(parser.buf);
     if (parser.json) {
