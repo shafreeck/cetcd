@@ -313,7 +313,7 @@ int cetcd_add_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
     return 1;
 }
 int cetcd_del_watcher(cetcd_array *watchers, cetcd_watcher *watcher) {
-    size_t index;
+    int index;
     index = watcher->array_index;
     if (watcher && index >= 0) {
         cetcd_array_set(watchers, index, NULL);
@@ -360,6 +360,7 @@ static int cetcd_reap_watchers(cetcd_client *cli, CURLM *mcurl) {
                     curl_easy_setopt(watcher->curl, CURLOPT_URL, url);
                     sdsfree(url);
                     curl_multi_remove_handle(mcurl, curl);
+                    watcher->parser->st = 0;
                     curl_easy_reset(curl);
                     cetcd_curl_setopt(curl, watcher);
                     curl_multi_add_handle(mcurl, curl);
@@ -1122,9 +1123,13 @@ void *cetcd_send_request(CURL *curl, cetcd_request *req) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cetcd_parse_response);
     curl_easy_setopt(curl, CURLOPT_VERBOSE, req->cli->settings.verbose);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, req->cli->settings.connect_timeout);
+    struct curl_slist *chunk = NULL;
+    chunk = curl_slist_append(chunk, "Expect:");
+    res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 
     res = curl_easy_perform(curl);
 
+    curl_slist_free_all(chunk);
     //release the parser resource
     sdsfree(parser.buf);
     if (parser.json) {
