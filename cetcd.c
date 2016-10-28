@@ -531,12 +531,15 @@ cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
+    char *value_escaped;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "value=%s", value);
+    value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+    params = sdscatprintf(sdsempty(), "value=%s", value_escaped);
+    curl_free(value_escaped);
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
     }
