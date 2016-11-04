@@ -531,12 +531,15 @@ cetcd_response *cetcd_set(cetcd_client *cli, const char *key,
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
+    char *value_escaped;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "value=%s", value);
+    value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+    params = sdscatprintf(sdsempty(), "value=%s", value_escaped);
+    curl_free(value_escaped);
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
     }
@@ -619,7 +622,10 @@ cetcd_response *cetcd_update(cetcd_client *cli, const char *key,
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
     params = sdscatprintf(sdsempty(), "prevExist=true");
     if (value) {
-        params = sdscatprintf(params, "&value=%s", value);
+        char *value_escaped;
+        value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+        params = sdscatprintf(params, "&value=%s", value_escaped);
+        curl_free(value_escaped);
     }
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
@@ -639,12 +645,15 @@ cetcd_response *cetcd_create(cetcd_client *cli, const char *key,
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
+    char *value_escaped;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "prevExist=false&value=%s", value);
+    value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+    params = sdscatprintf(sdsempty(), "prevExist=false&value=%s", value_escaped);
+    curl_free(value_escaped);
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
     }
@@ -660,12 +669,15 @@ cetcd_response *cetcd_create_in_order(cetcd_client *cli, const char *key,
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
+    char *value_escaped;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_POST;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(),"%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "value=%s", value);
+    value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+    params = sdscatprintf(sdsempty(), "value=%s", value_escaped);
+    curl_free(value_escaped);
     if (ttl){
         params = sdscatprintf(params ,"&ttl=%lu", ttl);
     }
@@ -735,12 +747,15 @@ cetcd_response *cetcd_cmp_and_swap(cetcd_client *cli, const char *key, const cha
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
+    char *value_escaped;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "value=%s&prevValue=%s", value, prev);
+    value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+    params = sdscatprintf(sdsempty(), "value=%s&prevValue=%s", value_escaped, prev);
+    curl_free(value_escaped);
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
     }
@@ -754,12 +769,15 @@ cetcd_response *cetcd_cmp_and_swap_by_index(cetcd_client *cli, const char *key, 
     cetcd_request req;
     cetcd_response *resp;
     cetcd_string params;
+    char *value_escaped;
 
     memset(&req, 0, sizeof(cetcd_request));
     req.method = ETCD_HTTP_PUT;
     req.api_type = ETCD_KEYS;
     req.uri = sdscatprintf(sdsempty(), "%s%s", cli->keys_space, key);
-    params = sdscatprintf(sdsempty(), "value=%s&prevIndex=%lu", value, prev);
+    value_escaped = curl_easy_escape(cli->curl, value, strlen(value));
+    params = sdscatprintf(sdsempty(), "value=%s&prevIndex=%lu", value_escaped, prev);
+    curl_free(value_escaped);
     if (ttl) {
         params = sdscatprintf(params, "&ttl=%lu", ttl);
     }
