@@ -1,4 +1,6 @@
 #include "cetcd.h"
+#include "sds/sds.h"
+typedef sds cetcd_string;
 #include "cetcd_json_parser.h"
 
 #include <string.h>
