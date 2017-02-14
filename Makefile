@@ -17,6 +17,7 @@ install:all
 	install -D libcetcd.so $(prefix)/lib/libcetcd.so
 	install -D cetcd.h $(prefix)/include/cetcd.h
 	install -D cetcd_array.h $(prefix)/include/cetcd_array.h
+	install -D sds/sds.h $(prefix)/include/sds/sds.h
 
 libcetcd.so: cetcd_array.o sds/sds.o cetcd.o
 	$(CC) $(LDFLAGS) -shared -o libcetcd.so cetcd_array.o sds/sds.o cetcd.o third-party/build/*.o
