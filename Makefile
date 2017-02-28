@@ -20,7 +20,7 @@ install:all
 	install -D sds/sds.h $(prefix)/include/sds/sds.h
 
 libcetcd.so: cetcd_array.o sds/sds.o cetcd.o
-	$(CC) $(LDFLAGS) -shared -o libcetcd.so cetcd_array.o sds/sds.o cetcd.o third-party/build/*.o
+	$(CC) -shared -o libcetcd.so cetcd_array.o sds/sds.o cetcd.o third-party/build/*.o $(LDFLAGS)
 sds/sds.o:sds/sds.c sds/sds.h
 cetcd_array.o:cetcd_array.c cetcd_array.h
 cetcd.o:cetcd.c cetcd.h cetcd_json_parser.h third-party/build/include/yajl/*.h third-party/build/*.o
